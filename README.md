@@ -1,96 +1,279 @@
-# CampusConnect 🎓
+# CampusConnect 🇹🇿🎓
 
-The elite Kenyan university super app for social buzz, safety-verified off-campus housing discovery, student marketplace, course groups, and a smart AI advisor.
+### Tanzania's University Super App for Student Communities, Housing, Marketplace, Events, Messaging & AI
 
-CampusConnect is designed as a highly scalable, production-grade web application built using **React (with TypeScript & Tailwind CSS)**, a robust custom **Node/Express backend server with Gemini AI integration**, and fully configured for **Supabase Cloud PostgreSQL Database & Authentication** (supporting direct migration and Vercel deployment).
+CampusConnect is a modern, scalable university ecosystem designed to connect Tanzanian university students, student organizations, landlords, campus communities, and service providers through one centralized digital platform.
 
----
+The platform brings together **campus social networking, verified off-campus accommodation discovery, student marketplace, campus events, direct messaging, interactive maps, university communities, and an AI-powered student assistant** in one application.
 
-## 🚀 Key Features
-
-- **🗺️ Campus Map & Navigation**: Uses standard Leaflet.js with high-contrast OpenStreetMap and Esri Satellite imagery, incorporating the OpenRouteService (ORS) API for real-time pedestrian/walking route distance and time estimation (including custom university gates like Maseno Siriba Gate).
-- **🗣️ Comrade Buzz Feed (Social)**: A secure, server-rendered community microblog feed where students can view posts, leave comments, like articles, and post anonymously or with real profiles.
-- **🏠 House Hunt (Hostel Discovery)**: Multi-filter hostel explorer with precise map markers, real landlord listings, reviews, amenities, pricing trackers, and offline storage failovers.
-- **🛍️ Student Marketplace**: Product marketplace allowing comrades to list pre-loved products, filter by category and university campus, rate seller reliability (Trust Scores), and start instant chats.
-- **📅 Campus Events Calendar**: Integrated event manager for academic sessions, social gigs, career fairs, and hackathons, complete with RSVP status and dynamic calendar bookmarks.
-- **🤖 Comrade Companion (AI Advisor)**: Server-side context-aware AI chat integrated with Gemini API via the `@google/genai` TypeScript SDK, providing offline hacks, transit routes, budget advisors, and course survival tips.
-- **💬 Direct Messaging**: Realtime instant chat channels between peers with active session logging, unread notifications, and image upload options.
-- **🔒 Hidden Admin Moderation Panel**: Protected dashboard enabling authorized admin accounts to manage active users, evaluate reports, verify landlords, and inspect systemic analytics.
+CampusConnect is designed and developed by **John Charles Sarwi**, a Tanzanian AI Engineer and Full-Stack Developer, with a vision of building practical digital solutions for students and universities across Tanzania and eventually East Africa.
 
 ---
 
-## 🛠️ Technology Stack
+## 🇹🇿 Built for Tanzania
 
-- **Frontend**: React (Vite-powered, TSX), Tailwind CSS, Lucide Icons, Framer Motion
-- **Backend / Proxy**: Express, TypeScript, tsx, esbuild
-- **Database**: Supabase PostgreSQL with fully configured Row Level Security (RLS) policies
-- **Auth**: Supabase Authentication (OAuth / Google, Email/Password)
-- **AI Engine**: `@google/genai` (Gemini-2.5-flash)
+CampusConnect is designed specifically around the Tanzanian university experience while maintaining a scalable architecture that can support universities across East Africa.
 
----
+The platform can support universities and higher-learning institutions including:
 
-## 🗄️ Database Schema & RLS
+- Mwenge Catholic University (MWECAU)
+- University of Dar es Salaam (UDSM)
+- University of Dodoma (UDOM)
+- Ardhi University (ARU)
+- Sokoine University of Agriculture (SUA)
+- Mzumbe University
+- Nelson Mandela African Institution of Science and Technology (NM-AIST)
+- Muhimbili University of Health and Allied Sciences (MUHAS)
+- Open University of Tanzania (OUT)
+- Institute of Finance Management (IFM)
+- Dar es Salaam Institute of Technology (DIT)
+- College of Business Education (CBE)
+- Tanzania Institute of Accountancy (TIA)
+- and other universities and colleges across Tanzania.
 
-All tables are defined in `/supabase/migrations/20260625000000_init_schema.sql` with strict foreign key constraints, default timestamps, indices, and Row Level Security policies.
-
-### Main Tables:
-- `universities`: Predefined universities with geographic center-points and verified domain lists.
-- `users`: Core profile registration, linked with Supabase's `auth.users` schema.
-- `posts` / `comments` / `likes`: Microblogging system.
-- `hostels` / `hostel_images` / `hostel_reviews` / `saved_hostels`: Off-campus hostel housing directory.
-- `marketplace_listings` / `saved_items`: Peer-to-peer student storefront.
-- `conversations` / `direct_messages`: Interactive realtime instant messaging.
-- `events` / `event_attendees` / `saved_events`: Campus and local student event calendars.
-- `notifications`: Activity indicators.
-- `reports`: Content flagging for admins.
+The architecture is designed to support a **multi-university ecosystem**, allowing different institutions to operate their own communities while maintaining a unified platform.
 
 ---
 
-## ⚙️ Environment Variables
+# 🚀 Key Features
 
-Create a `.env` file in the root directory and add the following keys:
+## 🗺️ Campus Map & Navigation
 
-```env
-# Gemini API credentials
-GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+Interactive campus and surrounding-area maps powered by:
 
-# OpenRouteService API (optional for mapping/routing)
-VITE_ORS_API_KEY="YOUR_ORS_API_KEY"
+- Leaflet.js
+- OpenStreetMap
+- Esri Satellite imagery
+- OpenRouteService API
 
-# Supabase Credentials (for live cloud database)
-VITE_SUPABASE_URL="YOUR_SUPABASE_URL"
-VITE_SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY"
-```
+Students can discover:
 
----
+- University buildings
+- Campus gates
+- Hostels
+- Restaurants
+- Shops
+- Transportation points
+- Student services
+- Important campus locations
 
-## 💻 Local Setup & Development
-
-### 1. Install Dependencies
-```bash
-npm install
-```
-
-### 2. Configure Database Migrations
-Deploy the database schema to your Supabase instance:
-- Go to the **Supabase Dashboard** -> **SQL Editor**.
-- Copy the contents of `supabase/migrations/20260625000000_init_schema.sql` and run it.
-- To pre-populate initial university data, copy the contents of `supabase/seed.sql` and run it.
-
-### 3. Run Development Server
-```bash
-npm run dev
-```
-The server will boot on `http://localhost:3000`.
+The system can calculate walking distances and estimated travel times between locations.
 
 ---
 
-## 🚀 Deploying to Vercel
+# 🗣️ Campus Buzz
 
-CampusConnect can be deployed on Vercel as a full-stack Node + Vite or as a single-page application.
+A student-focused social community where students can:
 
-1. **Import Repository**: Connect your repository to Vercel.
-2. **Environment Variables**: Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as production environment variables.
-3. **Build Settings**:
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
+- Create posts
+- Comment on posts
+- Like posts
+- Share information
+- Ask questions
+- Participate in campus discussions
+- Use real profiles
+- Post anonymously where permitted
+
+Campus Buzz is designed to become the digital social space for university communities.
+
+---
+
+# 🏠 House Hunt — Student Accommodation
+
+CampusConnect provides a dedicated accommodation discovery platform for students searching for:
+
+- Hostels
+- Apartments
+- Rooms
+- Shared accommodation
+- Off-campus houses
+
+Students can filter properties by:
+
+- University
+- Location
+- Price
+- Distance
+- Amenities
+- Room type
+- Availability
+
+Each accommodation listing can contain:
+
+- Property images
+- Location
+- Landlord information
+- Pricing
+- Amenities
+- Reviews
+- Student ratings
+- Verification status
+
+The system is designed to support student accommodation discovery around universities in:
+
+**Dar es Salaam • Dodoma • Arusha • Mwanza • Moshi • Mbeya • Morogoro • Iringa • Tanga • Zanzibar • and other Tanzanian university cities.**
+
+---
+
+# 🛍️ Student Marketplace
+
+A peer-to-peer marketplace designed specifically for university communities.
+
+Students can buy and sell:
+
+- Laptops
+- Phones
+- Electronics
+- Books
+- Furniture
+- Clothes
+- Academic materials
+- Accessories
+- Dormitory items
+- Other student-related products
+
+### Marketplace Features
+
+- Product listings
+- Product categories
+- University filtering
+- Seller profiles
+- Seller Trust Scores
+- Product images
+- Saved products
+- Direct messaging
+- Seller reviews
+
+The goal is to make student-to-student trading easier and safer.
+
+---
+
+# 📅 Campus Events
+
+A centralized event discovery and management system for:
+
+- Academic events
+- Student organization events
+- Career fairs
+- Hackathons
+- Workshops
+- Conferences
+- Sports events
+- Social events
+- Technology events
+- Campus competitions
+
+Students can:
+
+- Discover events
+- RSVP
+- Save events
+- Receive notifications
+- Track upcoming activities
+
+---
+
+# 🤖 AI Student Companion
+
+CampusConnect integrates an AI-powered student assistant using Google's Gemini AI.
+
+The AI assistant can provide contextual assistance with:
+
+- Academic guidance
+- Course survival tips
+- Campus information
+- Accommodation guidance
+- Budget planning
+- Transportation guidance
+- Student productivity
+- University-life questions
+- General campus assistance
+
+The long-term vision is to create an AI assistant that understands the **Tanzanian university environment** and can communicate effectively with students.
+
+Future versions can support both:
+
+**English 🇬🇧 and Kiswahili 🇹🇿**
+
+---
+
+# 💬 Direct Messaging
+
+Real-time communication between students and other campus users.
+
+Features include:
+
+- One-to-one messaging
+- Conversation history
+- Unread messages
+- Notifications
+- Image sharing
+- Active-session tracking
+- Student-to-seller communication
+- Student-to-landlord communication
+
+---
+
+# 🛡️ Safety & Verification
+
+Student safety is a core component of CampusConnect.
+
+The platform can support:
+
+- University email verification
+- Student account verification
+- Landlord verification
+- Property verification
+- User reporting
+- Content moderation
+- Suspicious listing detection
+- Trust scores
+- Admin review
+- Account management
+
+This is particularly important for the housing and marketplace systems.
+
+---
+
+# 🔐 Administration Dashboard
+
+CampusConnect includes a protected administration system for authorized administrators.
+
+Administrators can manage:
+
+- Students
+- Universities
+- Student organizations
+- Hostels
+- Landlords
+- Marketplace listings
+- Events
+- Reports
+- Verification requests
+- Platform analytics
+- Moderation
+- System activity
+
+The system is designed to support **role-based access control** and **multi-university management**.
+
+---
+
+# 🏛️ Multi-University Architecture
+
+CampusConnect is not restricted to one university.
+
+The architecture is designed around a multi-university model:
+
+```text
+                         CAMPUSCONNECT 🇹🇿
+                                │
+                ┌───────────────┼───────────────┐
+                │               │               │
+           UNIVERSITY A    UNIVERSITY B    UNIVERSITY C
+                │               │               │
+             Students        Students        Students
+                │               │               │
+             Clubs           Clubs           Clubs
+             Events          Events          Events
+             Housing         Housing         Housing
+             Marketplace     Marketplace     Marketplace
