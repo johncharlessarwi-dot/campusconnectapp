@@ -1,517 +1,2187 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * CampusConnect Tanzania
+ * ---------------------------------------------------------
+ * Express + Gemini + Vite Server
+ *
+ * Core concept preserved:
+ * - University discovery
+ * - CampusConnect AI Companion
+ * - Student posts
+ * - Hostels
+ * - Marketplace
+ * - Campus events
+ * - AI moderation
+ * - AI mock-data generation
+ * - Gemini AI with local fallback mode
+ *
+ * Country: Tanzania 🇹🇿
+ * Currency: Tanzanian Shillings (TZS / Tsh)
  */
 
-import express from 'express';
-import path from 'path';
-import fs from 'fs';
-import dotenv from 'dotenv';
-import { GoogleGenAI } from '@google/genai';
+import express from "express";
+import path from "path";
+import dotenv from "dotenv";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 
 const app = express();
-app.use(express.json());
 
-const PORT = 3000;
+/* =========================================================
+   BASIC SERVER CONFIGURATION
+   ========================================================= */
 
-// Initialize Gemini Client safely
-let ai: GoogleGenAI | null = null;
+const PORT = Number(process.env.PORT) || 3000;
+
+app.use(express.json({ limit: "1mb" }));
+
+app.disable("x-powered-by");
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader(
+    "Referrer-Policy",
+    "strict-origin-when-cross-origin"
+  );
+
+  next();
+});
+
+/* =========================================================
+   GEMINI CONFIGURATION
+   ========================================================= */
+
 const geminiKey = process.env.GEMINI_API_KEY;
 
-if (geminiKey && geminiKey !== 'MY_GEMINI_API_KEY') {
+const GEMINI_MODEL =
+  process.env.GEMINI_MODEL || "gemini-3.5-flash";
+
+let ai: GoogleGenAI | null = null;
+
+if (
+  geminiKey &&
+  geminiKey.trim() !== "" &&
+  geminiKey !== "MY_GEMINI_API_KEY"
+) {
   try {
     ai = new GoogleGenAI({
       apiKey: geminiKey,
       httpOptions: {
         headers: {
-          'User-Agent': 'aistudio-build',
+          "User-Agent": "CampusConnect-Tanzania",
         },
       },
     });
-    console.log('Gemini AI Client initialized successfully');
+
+    console.log("✓ Gemini AI initialized");
   } catch (error) {
-    console.error('Failed to initialize Gemini Client:', error);
+    console.error(
+      "Failed to initialize Gemini:",
+      error
+    );
   }
 } else {
-  console.log('Gemini API key is not set. Operating in high-fidelity mock & simulation mode');
+  console.log(
+    "⚠ GEMINI_API_KEY not configured."
+  );
+
+  console.log(
+    "✓ CampusConnect will use fallback AI mode."
+  );
 }
 
-// 1. Top 10 Kenyan Universities Metadata
+/* =========================================================
+   TANZANIA UNIVERSITIES
+   ========================================================= */
+
 const UNIVERSITIES = [
   {
-    id: 'uon',
-    name: 'University of Nairobi',
-    shortName: 'UON',
-    acronym: 'UON',
-    location: { lat: -1.2797, lng: 36.8163 },
-    website: 'https://www.uonbi.ac.ke',
+    id: "udsm",
+    name: "University of Dar es Salaam",
+    shortName: "UDSM",
+    acronym: "UDSM",
+    city: "Dar es Salaam",
+    region: "Dar es Salaam",
+    location: {
+      lat: -6.7924,
+      lng: 39.2083,
+    },
+    website: "https://www.udsm.ac.tz",
     founded: 1970,
-    studentCount: 84000,
-    logo: '🎓',
-    bannerImage: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80',
-    emailDomains: ['uonbi.ac.ke', 'student.uonbi.ac.ke'],
-    campuses: ['Main Campus', 'Chiromo', 'Kikuyu', 'Kabete', 'Lower Kabete'],
+    studentCount: 40000,
+    logo: "🎓",
+    bannerImage:
+      "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "udsm.ac.tz",
+      "student.udsm.ac.tz",
+    ],
+    campuses: [
+      "Mlimani Campus",
+      "CoICT",
+      "DUCE",
+      "MUCE",
+    ],
   },
+
   {
-    id: 'ku',
-    name: 'Kenyatta University',
-    shortName: 'Kenyatta Uni',
-    acronym: 'KU',
-    location: { lat: -1.1812, lng: 36.9275 },
-    website: 'https://www.ku.ac.ke',
-    founded: 1985,
-    studentCount: 70000,
-    logo: '🏢',
-    bannerImage: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80',
-    emailDomains: ['ku.ac.ke', 'student.ku.ac.ke'],
-    campuses: ['Main Campus', 'Ruiru', 'Parklands', 'City Campus'],
+    id: "udom",
+    name: "University of Dodoma",
+    shortName: "UDOM",
+    acronym: "UDOM",
+    city: "Dodoma",
+    region: "Dodoma",
+    location: {
+      lat: -6.163,
+      lng: 35.7516,
+    },
+    website: "https://www.udom.ac.tz",
+    founded: 2007,
+    studentCount: 30000,
+    logo: "🏛️",
+    bannerImage:
+      "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "udom.ac.tz",
+      "student.udom.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+      "College of Informatics and Virtual Education",
+      "College of Health Sciences",
+    ],
   },
+
   {
-    id: 'jkuat',
-    name: 'Jomo Kenyatta University of Agriculture & Technology',
-    shortName: 'JKUAT',
-    acronym: 'JKUAT',
-    location: { lat: -1.0967, lng: 37.0125 },
-    website: 'https://www.jkuat.ac.ke',
-    founded: 1994,
-    studentCount: 45000,
-    logo: '🌾',
-    bannerImage: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80',
-    emailDomains: ['jkuat.ac.ke', 'student.jkuat.ac.ke'],
-    campuses: ['Main Campus (Juja)', 'Nairobi Campus', 'Karen Campus'],
-  },
-  {
-    id: 'strathmore',
-    name: 'Strathmore University',
-    shortName: 'Strathmore',
-    acronym: 'SU',
-    location: { lat: -1.3082, lng: 36.8123 },
-    website: 'https://www.strathmore.edu',
-    founded: 1961,
-    studentCount: 10000,
-    logo: '🦁',
-    bannerImage: 'https://images.unsplash.com/photo-1498243691581-b145c3f54a5c?auto=format&fit=crop&w=800&q=80',
-    emailDomains: ['strathmore.edu', 'student.strathmore.edu'],
-    campuses: ['Madaraka Campus'],
-  },
-  {
-    id: 'mku',
-    name: 'Mount Kenya University',
-    shortName: 'Mount Kenya Uni',
-    acronym: 'MKU',
-    location: { lat: -1.0396, lng: 37.0700 },
-    website: 'https://www.mku.ac.ke',
-    founded: 2008,
-    studentCount: 52000,
-    logo: '🏔️',
-    bannerImage: 'https://images.unsplash.com/photo-1592280771190-3e2e4d571952?auto=format&fit=crop&w=800&q=80',
-    emailDomains: ['mku.ac.ke', 'student.mku.ac.ke'],
-    campuses: ['Thika Main Campus', 'Nairobi Campus', 'Nakuru Campus'],
-  },
-  {
-    id: 'usiu',
-    name: 'United States International University Africa',
-    shortName: 'USIU Africa',
-    acronym: 'USIU',
-    location: { lat: -1.2185, lng: 36.8784 },
-    website: 'https://www.usiu.ac.ke',
-    founded: 1969,
-    studentCount: 9000,
-    logo: '🌎',
-    bannerImage: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80',
-    emailDomains: ['usiu.ac.ke', 'student.usiu.ac.ke'],
-    campuses: ['Nairobi Campus'],
-  },
-  {
-    id: 'moi',
-    name: 'Moi University',
-    shortName: 'Moi Uni',
-    acronym: 'MU',
-    location: { lat: -0.2827, lng: 35.2913 },
-    website: 'https://www.mu.ac.ke',
+    id: "sua",
+    name: "Sokoine University of Agriculture",
+    shortName: "SUA",
+    acronym: "SUA",
+    city: "Morogoro",
+    region: "Morogoro",
+    location: {
+      lat: -6.8511,
+      lng: 37.6591,
+    },
+    website: "https://www.sua.ac.tz",
     founded: 1984,
-    studentCount: 38000,
-    logo: '🏹',
-    bannerImage: 'https://images.unsplash.com/photo-1525921429624-479b6c29454f?auto=format&fit=crop&w=800&q=80',
-    emailDomains: ['mu.ac.ke', 'student.mu.ac.ke'],
-    campuses: ['Main Campus (Eldoret)', 'Nairobi Campus', 'Eldoret Town Campus'],
+    studentCount: 15000,
+    logo: "🌾",
+    bannerImage:
+      "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "sua.ac.tz",
+      "student.sua.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+      "Solomon Mahlangu Campus",
+    ],
   },
+
   {
-    id: 'maseno',
-    name: 'Maseno University',
-    shortName: 'Maseno Uni',
-    acronym: 'Maseno',
-    location: { lat: -0.0036, lng: 34.6015 },
-    website: 'https://www.maseno.ac.ke',
-    founded: 1991,
-    studentCount: 22000,
-    logo: '🌊',
-    bannerImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80',
-    emailDomains: ['maseno.ac.ke', 'student.maseno.ac.ke'],
-    campuses: ['Main Campus', 'Kisumu Campus'],
+    id: "mzumbe",
+    name: "Mzumbe University",
+    shortName: "Mzumbe",
+    acronym: "MU",
+    city: "Morogoro",
+    region: "Morogoro",
+    location: {
+      lat: -6.7807,
+      lng: 37.634,
+    },
+    website: "https://www.mzumbe.ac.tz",
+    founded: 2001,
+    studentCount: 10000,
+    logo: "📚",
+    bannerImage:
+      "https://images.unsplash.com/photo-1498243691581-b145c3f54a5c?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "mzumbe.ac.tz",
+      "student.mzumbe.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+      "Dar es Salaam Campus",
+    ],
   },
+
   {
-    id: 'daystar',
-    name: 'Daystar University',
-    shortName: 'Daystar',
-    acronym: 'Daystar',
-    location: { lat: -1.4428, lng: 37.0145 },
-    website: 'https://www.daystar.ac.ke',
-    founded: 1973,
-    studentCount: 8000,
-    logo: '☀️',
-    bannerImage: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=800&q=80',
-    emailDomains: ['daystar.ac.ke', 'student.daystar.ac.ke'],
-    campuses: ['Athi River Campus', 'Valley Road Campus'],
+    id: "muhas",
+    name: "Muhimbili University of Health and Allied Sciences",
+    shortName: "MUHAS",
+    acronym: "MUHAS",
+    city: "Dar es Salaam",
+    region: "Dar es Salaam",
+    location: {
+      lat: -6.8075,
+      lng: 39.2675,
+    },
+    website: "https://www.muhas.ac.tz",
+    founded: 2007,
+    studentCount: 6000,
+    logo: "🩺",
+    bannerImage:
+      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "muhas.ac.tz",
+      "student.muhas.ac.tz",
+    ],
+    campuses: [
+      "Muhimbili Campus",
+      "Mloganzila Campus",
+    ],
   },
+
   {
-    id: 'kemu',
-    name: 'Kenya Methodist University',
-    shortName: 'KeMU',
-    acronym: 'KeMU',
-    location: { lat: 0.0617, lng: 37.6622 },
-    website: 'https://www.kemu.ac.ke',
-    founded: 1997,
-    studentCount: 12000,
-    logo: '✝️',
-    bannerImage: 'https://images.unsplash.com/photo-1544535830-9df3f5687760?auto=format&fit=crop&w=800&q=80',
-    emailDomains: ['kemu.ac.ke', 'student.kemu.ac.ke'],
-    campuses: ['Meru Main Campus', 'Nairobi Campus', 'Mombasa Campus'],
+    id: "aru",
+    name: "Ardhi University",
+    shortName: "ARU",
+    acronym: "ARU",
+    city: "Dar es Salaam",
+    region: "Dar es Salaam",
+    location: {
+      lat: -6.7689,
+      lng: 39.207,
+    },
+    website: "https://www.aru.ac.tz",
+    founded: 2007,
+    studentCount: 10000,
+    logo: "🏗️",
+    bannerImage:
+      "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "aru.ac.tz",
+      "student.aru.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+    ],
+  },
+
+  {
+    id: "must",
+    name: "Mbeya University of Science and Technology",
+    shortName: "MUST",
+    acronym: "MUST",
+    city: "Mbeya",
+    region: "Mbeya",
+    location: {
+      lat: -8.9647,
+      lng: 33.4442,
+    },
+    website: "https://www.must.ac.tz",
+    founded: 2012,
+    studentCount: 9000,
+    logo: "⚙️",
+    bannerImage:
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "must.ac.tz",
+      "student.must.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+    ],
+  },
+
+  {
+    id: "mocu",
+    name: "Moshi Cooperative University",
+    shortName: "MoCU",
+    acronym: "MoCU",
+    city: "Moshi",
+    region: "Kilimanjaro",
+    location: {
+      lat: -3.3347,
+      lng: 37.3404,
+    },
+    website: "https://www.mocu.ac.tz",
+    founded: 1963,
+    studentCount: 7000,
+    logo: "🤝",
+    bannerImage:
+      "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "mocu.ac.tz",
+      "student.mocu.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+    ],
+  },
+
+  {
+    id: "nm-aist",
+    name: "Nelson Mandela African Institution of Science and Technology",
+    shortName: "NM-AIST",
+    acronym: "NM-AIST",
+    city: "Arusha",
+    region: "Arusha",
+    location: {
+      lat: -3.398,
+      lng: 36.806,
+    },
+    website: "https://www.nm-aist.ac.tz",
+    founded: 2010,
+    studentCount: 3000,
+    logo: "🔬",
+    bannerImage:
+      "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "nm-aist.ac.tz",
+      "student.nm-aist.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+    ],
+  },
+
+  {
+    id: "out",
+    name: "Open University of Tanzania",
+    shortName: "OUT",
+    acronym: "OUT",
+    city: "Dar es Salaam",
+    region: "Dar es Salaam",
+    location: {
+      lat: -6.7667,
+      lng: 39.2067,
+    },
+    website: "https://www.out.ac.tz",
+    founded: 1992,
+    studentCount: 30000,
+    logo: "🌐",
+    bannerImage:
+      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "out.ac.tz",
+      "student.out.ac.tz",
+    ],
+    campuses: [
+      "Dar es Salaam Headquarters",
+      "Regional Centres",
+    ],
+  },
+
+  {
+    id: "suza",
+    name: "State University of Zanzibar",
+    shortName: "SUZA",
+    acronym: "SUZA",
+    city: "Zanzibar",
+    region: "Zanzibar",
+    location: {
+      lat: -6.1659,
+      lng: 39.1989,
+    },
+    website: "https://www.suza.ac.tz",
+    founded: 2002,
+    studentCount: 7000,
+    logo: "🌴",
+    bannerImage:
+      "https://images.unsplash.com/photo-1505881502353-a1986add3762?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "suza.ac.tz",
+      "student.suza.ac.tz",
+    ],
+    campuses: [
+      "Tunguu Campus",
+      "Maruhubi Campus",
+      "Vuga Campus",
+    ],
+  },
+
+  {
+    id: "mwecau",
+    name: "Mwenge Catholic University",
+    shortName: "MWECAU",
+    acronym: "MWECAU",
+    city: "Moshi",
+    region: "Kilimanjaro",
+    location: {
+      lat: -3.334,
+      lng: 37.335,
+    },
+    website: "https://www.mwecau.ac.tz",
+    founded: 2005,
+    studentCount: 6000,
+    logo: "🎓",
+    bannerImage:
+      "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "mwecau.ac.tz",
+      "student.mwecau.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+      "Hedaru Campus College",
+    ],
+  },
+
+  {
+    id: "saut",
+    name: "St. Augustine University of Tanzania",
+    shortName: "SAUT",
+    acronym: "SAUT",
+    city: "Mwanza",
+    region: "Mwanza",
+    location: {
+      lat: -2.5164,
+      lng: 32.903,
+    },
+    website: "https://www.saut.ac.tz",
+    founded: 1998,
+    studentCount: 10000,
+    logo: "🎓",
+    bannerImage:
+      "https://images.unsplash.com/photo-1544535830-9df3f5687760?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "saut.ac.tz",
+      "student.saut.ac.tz",
+    ],
+    campuses: [
+      "Mwanza Main Campus",
+      "Dar es Salaam Centre",
+      "Arusha Centre",
+    ],
+  },
+
+  {
+    id: "sjuit",
+    name: "St. Joseph University in Tanzania",
+    shortName: "SJUIT",
+    acronym: "SJUIT",
+    city: "Dar es Salaam",
+    region: "Dar es Salaam",
+    location: {
+      lat: -6.799,
+      lng: 39.235,
+    },
+    website: "https://www.sjuit.ac.tz",
+    founded: 2010,
+    studentCount: 5000,
+    logo: "🎓",
+    bannerImage:
+      "https://images.unsplash.com/photo-1564981797816-1043664bf78d?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "sjuit.ac.tz",
+      "student.sjuit.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+    ],
+  },
+
+  {
+    id: "sjut",
+    name: "St. John's University of Tanzania",
+    shortName: "SJUT",
+    acronym: "SJUT",
+    city: "Dodoma",
+    region: "Dodoma",
+    location: {
+      lat: -6.1635,
+      lng: 35.738,
+    },
+    website: "https://www.sjut.ac.tz",
+    founded: 2007,
+    studentCount: 6000,
+    logo: "📖",
+    bannerImage:
+      "https://images.unsplash.com/photo-1525921429624-479b6c29454f?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "sjut.ac.tz",
+      "student.sjut.ac.tz",
+    ],
+    campuses: [
+      "Dodoma Campus",
+    ],
+  },
+
+  {
+    id: "juco",
+    name: "Jordan University College",
+    shortName: "JUCo",
+    acronym: "JUCo",
+    city: "Morogoro",
+    region: "Morogoro",
+    location: {
+      lat: -6.821,
+      lng: 37.658,
+    },
+    website: "https://www.juco.ac.tz",
+    founded: 1992,
+    studentCount: 5000,
+    logo: "🎓",
+    bannerImage:
+      "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "juco.ac.tz",
+      "student.juco.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+    ],
+  },
+
+  {
+    id: "zanzibar-university",
+    name: "Zanzibar University",
+    shortName: "ZU",
+    acronym: "ZU",
+    city: "Zanzibar",
+    region: "Zanzibar",
+    location: {
+      lat: -6.183,
+      lng: 39.248,
+    },
+    website: "https://www.zanvarsity.ac.tz",
+    founded: 1998,
+    studentCount: 5000,
+    logo: "🌴",
+    bannerImage:
+      "https://images.unsplash.com/photo-1539367628448-4bc5c9d171c8?auto=format&fit=crop&w=1000&q=80",
+    emailDomains: [
+      "zanvarsity.ac.tz",
+      "student.zanvarsity.ac.tz",
+    ],
+    campuses: [
+      "Main Campus",
+    ],
   },
 ];
 
-// Fallback high-fidelity dataset for local rendering
+/* =========================================================
+   FALLBACK POSTS
+   ========================================================= */
+
 const FALLBACK_POSTS = [
   {
-    uon: [
-      { content: "Lost my UON student ID card around Jomo Kenyatta Library today morning. If found, please drop it at the security office or DM me! Name: Ken G.", isAnonymous: false },
-      { content: "Strathmore vs UON friendly football match at UON sports ground this Friday! Come cheer our team! ⚽🔥 #UONNation", isAnonymous: false },
-      { content: "Does anyone know the best spot to study at Lower Kabete library with stable WiFi? Ground floor is always jammed.", isAnonymous: false, tags: ["study", "kabete"] },
+    udsm: [
+      {
+        content:
+          "Comrades, kuna mtu ameona student ID yangu karibu na Mlimani Library? Niliipoteza leo asubuhi. Tafadhali kama umeiona DM.",
+        isAnonymous: false,
+        tags: ["UDSM", "lost-and-found"],
+      },
+
+      {
+        content:
+          "Anyone looking for a quiet place to study around Mlimani? Library is packed today. Let's share good study spots.",
+        isAnonymous: false,
+        tags: ["study", "UDSM"],
+      },
+
+      {
+        content:
+          "Kuna group ya Computer Science students wanafanya revision ya database wiki hii? Ningependa kujoin.",
+        isAnonymous: false,
+        tags: ["CSC", "study-group"],
+      },
     ],
-    jkuat: [
-      { content: "Anyone selling an engineering drawing board near Juja Gate A? Needed urgently before Friday's assessment.", isAnonymous: false },
-      { content: "Juja water issue is becoming a joke. Third day in a row my bedsitter near Oasis has dry taps. Landlords need to buy bigger tanks!", isAnonymous: true },
-      { content: "The JKUAT tech hackers club is meeting tomorrow at COHRED lab from 4 PM. We are working on a new campus navigation map! Join us.", isAnonymous: false },
+
+    udom: [
+      {
+        content:
+          "UDOM comrades, anyone looking for a roommate around Dodoma campus area? Serious and clean student only.",
+        isAnonymous: false,
+        tags: ["UDOM", "roommate"],
+      },
+
+      {
+        content:
+          "Who knows a good affordable food spot near UDOM? Trying to survive this semester budget 😭.",
+        isAnonymous: false,
+        tags: ["food", "budget"],
+      },
     ],
-    ku: [
-      { content: "Kenyatta University Culture Week is around the corner! Any clubs ready to set up stands near the Student Center? 🎪🔥", isAnonymous: false },
-      { content: "Looking for roommates for a 2-bedroom apartment at Ruiru. Clean, quiet, rent is 8k per person including water. DM ASAP!", isAnonymous: false },
+
+    sua: [
+      {
+        content:
+          "SUA students, anyone selling used agricultural science textbooks? DM me with price and condition.",
+        isAnonymous: false,
+        tags: ["SUA", "books"],
+      },
+
+      {
+        content:
+          "Looking for a study group around SUA for first-year students. Let's organize one before CAT week.",
+        isAnonymous: false,
+        tags: ["study", "SUA"],
+      },
+    ],
+
+    mwecau: [
+      {
+        content:
+          "MWECAU comrades, anyone interested in creating a Computer Science revision group this semester?",
+        isAnonymous: false,
+        tags: ["MWECAU", "Computer Science"],
+      },
     ],
   },
 ];
+
+/* =========================================================
+   FALLBACK HOSTELS
+   ========================================================= */
 
 const FALLBACK_HOSTELS = [
   {
-    uon: [
-      { name: "Nyalali Premium Heights", address: "State House Road, Nairobi", distance: 350, bedsitter: 12000, single: 8500, oneBedroom: 18000, description: "Premium, highly secure hostel adjacent to UON Main Gate. 24/7 borehole water, pre-installed WiFi, and hot showers." },
-      { name: "State House View Block B", address: "Mamlaka Road, Nairobi", distance: 600, bedsitter: 10000, single: 7000, oneBedroom: 15000, description: "Quiet student community offering affordable units. Pre-installed security alarms, spacious rooms, and close to Chiromo Campus." },
+    udsm: [
+      {
+        name: "Mlimani Student Residence",
+        address: "Mlimani, Dar es Salaam",
+        distance: 700,
+        single: 180000,
+        bedsitter: 300000,
+        oneBedroom: 450000,
+        description:
+          "Student-oriented accommodation close to UDSM. Suitable for students looking for easy campus access and nearby food and transport.",
+      },
+
+      {
+        name: "Sinza Student Rooms",
+        address: "Sinza, Dar es Salaam",
+        distance: 3500,
+        single: 150000,
+        bedsitter: 280000,
+        oneBedroom: 400000,
+        description:
+          "Affordable rooms around Sinza with access to daladala routes, shops and student services.",
+      },
     ],
-    jkuat: [
-      { name: "Juja Legacy Heights", address: "Gate A Road, Juja", distance: 400, bedsitter: 9000, single: 6000, oneBedroom: 14000, description: "Very popular student hub in Juja. Modern amenities, prepaid token meters, high-speed fiber internet, and biometric entry locks." },
-      { name: "Oasis Greens Executive", address: "Oasis Area, Juja", distance: 800, bedsitter: 8000, single: 5500, oneBedroom: 12500, description: "Serene student apartments located slightly off the main road. Spacious balconies, reliable backup generator, and safe motorcycle parking." },
+
+    udom: [
+      {
+        name: "Dodoma Student Residence",
+        address: "Near UDOM, Dodoma",
+        distance: 1000,
+        single: 120000,
+        bedsitter: 220000,
+        oneBedroom: 350000,
+        description:
+          "Affordable student accommodation close to UDOM with access to local shops and transport.",
+      },
     ],
-    ku: [
-      { name: "Ruiru Gateway Apartments", address: "Ruiru Highway Bypass, Ruiru", distance: 500, bedsitter: 11000, single: 7500, oneBedroom: 16000, description: "Conveniently located for KU students. High-tech CCTV surveillance, clean layout, in-house mini-supermarket, and solar water heating." },
+
+    sua: [
+      {
+        name: "Morogoro Student Lodge",
+        address: "Near SUA, Morogoro",
+        distance: 800,
+        single: 120000,
+        bedsitter: 230000,
+        oneBedroom: 350000,
+        description:
+          "Student-friendly accommodation close to SUA with affordable monthly options.",
+      },
+    ],
+
+    mwecau: [
+      {
+        name: "Moshi Student Rooms",
+        address: "Moshi, Kilimanjaro",
+        distance: 1000,
+        single: 100000,
+        bedsitter: 200000,
+        oneBedroom: 320000,
+        description:
+          "Affordable student rooms around Moshi suitable for MWECAU students.",
+      },
     ],
   },
 ];
+
+/* =========================================================
+   FALLBACK MARKETPLACE
+   ========================================================= */
 
 const FALLBACK_PRODUCTS = [
   {
-    uon: [
-      { title: "Calculus for Engineers textbook (6th Ed)", description: "In crisp condition, no highlights, essential for first-year engineering classes. Price negotiable.", category: "Textbooks & Notes", price: 1800, condition: "LIKE_NEW", campus: "Chiromo" },
-      { title: "Study desk and orthopedic chair", description: "Spacious wooden study desk with dual drawers, paired with an adjustable mesh chair. Perfect for long study sessions.", category: "Furniture", price: 6500, condition: "USED", campus: "Lower Kabete" },
+    udsm: [
+      {
+        title:
+          "Used Computer Science Textbooks",
+        description:
+          "Good-condition textbooks suitable for first-year and second-year Computer Science students.",
+        category:
+          "Textbooks & Notes",
+        price: 25000,
+        condition: "USED",
+        campus: "UDSM",
+      },
+
+      {
+        title:
+          "HP EliteBook Laptop",
+        description:
+          "Used laptop suitable for programming, assignments and general university work.",
+        category: "Electronics",
+        price: 650000,
+        condition: "USED",
+        campus: "Mlimani",
+      },
+
+      {
+        title:
+          "Study Desk",
+        description:
+          "Compact wooden study desk suitable for hostel rooms.",
+        category: "Furniture",
+        price: 120000,
+        condition: "USED",
+        campus: "Mlimani",
+      },
     ],
-    jkuat: [
-      { title: "HP EliteBook 840 G5 Laptop", description: "Intel Core i5, 8GB RAM, 256GB SSD. Ideal for JKUAT computing students. Battery holds 4 hours, comes with original charger.", category: "Electronics", price: 28000, condition: "USED", campus: "Main Campus (Juja)" },
+
+    udom: [
+      {
+        title:
+          "Scientific Calculator",
+        description:
+          "Good-condition scientific calculator for engineering and science students.",
+        category:
+          "Electronics",
+        price: 30000,
+        condition: "LIKE_NEW",
+        campus: "UDOM",
+      },
+    ],
+
+    sua: [
+      {
+        title:
+          "Agriculture Textbook Collection",
+        description:
+          "Collection of useful agriculture textbooks for undergraduate students.",
+        category:
+          "Textbooks & Notes",
+        price: 90000,
+        condition: "USED",
+        campus: "SUA",
+      },
     ],
   },
 ];
+
+/* =========================================================
+   FALLBACK EVENTS
+   ========================================================= */
 
 const FALLBACK_EVENTS = [
   {
-    uon: [
-      { title: "Chiromo Science Innovation Day", description: "Showcase of robotics, machine learning prototypes, and agricultural science solutions developed by UON students. Free food and networking!", category: "ACADEMIC", startDateTime: "2026-07-10T09:00:00", endDateTime: "2026-07-10T16:00:00", locationName: "Chiromo Campus Lecture Theatre", isVirtual: false },
-      { title: "Nairobi Student Startup Summit", description: "Local VC panels, pitching contest for student entrepreneurs, and career mentorship booths. Pitch your ideas in KES and win funding!", category: "CAREER", startDateTime: "2026-07-15T10:00:00", endDateTime: "2026-07-15T17:00:00", locationName: "Manu Chandaria Auditorium", isVirtual: false },
+    udsm: [
+      {
+        title:
+          "UDSM Student Innovation Day",
+        description:
+          "A student innovation event showcasing technology, entrepreneurship and academic projects.",
+        category: "ACADEMIC",
+        startDateTime:
+          "2026-09-10T09:00:00",
+        endDateTime:
+          "2026-09-10T16:00:00",
+        locationName:
+          "UDSM Main Campus",
+        isVirtual: false,
+      },
+
+      {
+        title:
+          "Campus Career Networking Day",
+        description:
+          "Students meet employers, entrepreneurs and professionals for career advice and networking.",
+        category: "CAREER",
+        startDateTime:
+          "2026-09-20T10:00:00",
+        endDateTime:
+          "2026-09-20T16:00:00",
+        locationName:
+          "UDSM Campus",
+        isVirtual: false,
+      },
     ],
-    jkuat: [
-      { title: "Juja Hackathon: Agritech Innovation", description: "48-hour challenge to design tech solutions for Kenyan smallholder farmers. Prizes include internship offers and AWS cloud credits.", category: "ACADEMIC", startDateTime: "2026-07-03T18:00:00", endDateTime: "2026-07-05T18:00:00", locationName: "JKUAT Assembly Hall", isVirtual: false },
+
+    udom: [
+      {
+        title:
+          "UDOM Technology Innovation Day",
+        description:
+          "Technology students showcase software, research and innovation projects.",
+        category: "ACADEMIC",
+        startDateTime:
+          "2026-09-15T09:00:00",
+        endDateTime:
+          "2026-09-15T17:00:00",
+        locationName:
+          "UDOM Campus",
+        isVirtual: false,
+      },
+    ],
+
+    sua: [
+      {
+        title:
+          "SUA Agriculture Innovation Fair",
+        description:
+          "Students showcase agricultural technologies and entrepreneurship ideas.",
+        category: "ACADEMIC",
+        startDateTime:
+          "2026-09-18T09:00:00",
+        endDateTime:
+          "2026-09-18T16:00:00",
+        locationName:
+          "SUA Campus",
+        isVirtual: false,
+      },
     ],
   },
 ];
 
-// ENDPOINTS
+/* =========================================================
+   HELPERS
+   ========================================================= */
 
-// 1. Get list of Kenyan universities
-app.get('/api/universities', (req, res) => {
-  res.json({ status: 'ok', universities: UNIVERSITIES });
-});
+function sendError(
+  res: express.Response,
+  status: number,
+  message: string,
+  details?: unknown
+) {
+  const payload: Record<
+    string,
+    unknown
+  > = {
+    error: message,
+  };
 
-// 2. Chat with Campus Companion Assistant (Gemini)
-app.post('/api/chat', async (req, res) => {
-  const { message, history, university } = req.body;
-
-  if (!message) {
-    return res.status(400).json({ error: 'Message content is required' });
+  if (
+    process.env.NODE_ENV !== "production" &&
+    details
+  ) {
+    payload.details =
+      details instanceof Error
+        ? details.message
+        : details;
   }
 
-  const uniContext = university
-    ? `The student belongs to "${university.name}" (acronym: ${university.acronym}). Ensure that where appropriate, you tailor tips specifically for this campus.`
-    : '';
+  return res
+    .status(status)
+    .json(payload);
+}
 
-  const systemInstruction = `You are CampusConnect Companion, an advanced, friendly, and practical AI Assistant designed to help Kenyan university students navigate campus life, find safe off-campus housing, collaborate on courses, browse student-run marketplace goods, discover campus events, and manage their social activities.
-  
-  You have deep knowledge of top Kenyan universities (including UON, KU, JKUAT, Strathmore, MKU, USIU, Moi, Maseno, Daystar, KeMU, etc.). 
-  ${uniContext}
-  
-  Guidelines:
-  1. Be helpful, enthusiastic, and practical.
-  2. Use Kenyan student slang gently if appropriate (e.g., "mambo", "chapaa", "bedsitter", "comrades", "fresher").
-  3. Keep monetary recommendations focused in Kenyan Shillings (KES).
-  4. Focus heavily on student safety, smart budgeting, transit routes (matatus), and reliable study techniques.
-  5. Structure your output elegantly using brief paragraphs, lists, and bold headers where appropriate. Do not output raw HTML. Use standard Markdown.`;
+function cleanString(
+  value: unknown,
+  maxLength = 5000
+): string {
+  if (typeof value !== "string") {
+    return "";
+  }
 
-  // If Gemini is configured, use it
-  if (ai) {
+  return value
+    .trim()
+    .slice(0, maxLength);
+}
+
+function isNonEmptyString(
+  value: unknown
+): value is string {
+  return (
+    typeof value === "string" &&
+    value.trim().length > 0
+  );
+}
+
+function parseJsonArray(
+  text: string
+): any[] {
+  const cleaned = text
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "");
+
+  const parsed =
+    JSON.parse(cleaned);
+
+  if (!Array.isArray(parsed)) {
+    throw new Error(
+      "AI response was not an array"
+    );
+  }
+
+  return parsed;
+}
+
+function normaliseHistory(
+  history: unknown
+) {
+  if (!Array.isArray(history)) {
+    return [];
+  }
+
+  return history
+    .slice(-20)
+    .filter(
+      (turn: any) =>
+        turn &&
+        (turn.role === "user" ||
+          turn.role === "assistant") &&
+        isNonEmptyString(
+          turn.content
+        )
+    )
+    .map((turn: any) => ({
+      role:
+        turn.role === "assistant"
+          ? "model"
+          : "user",
+
+      parts: [
+        {
+          text: cleanString(
+            turn.content,
+            4000
+          ),
+        },
+      ],
+    }));
+}
+
+function findUniversityById(
+  id: unknown
+) {
+  if (!isNonEmptyString(id)) {
+    return null;
+  }
+
+  return (
+    UNIVERSITIES.find(
+      (university: any) =>
+        university.id === id
+    ) || null
+  );
+}
+
+function getFallbackDataset(
+  category: string,
+  acronym: string
+): any[] {
+  const universityKey =
+    cleanString(
+      acronym,
+      50
+    ).toLowerCase();
+
+  const sources: Record<
+    string,
+    any
+  > = {
+    posts: FALLBACK_POSTS[0],
+    hostels: FALLBACK_HOSTELS[0],
+    products: FALLBACK_PRODUCTS[0],
+    events: FALLBACK_EVENTS[0],
+  };
+
+  const source =
+    sources[category];
+
+  if (!source) {
+    return [];
+  }
+
+  return (
+    source[universityKey] ||
+    source.udsm ||
+    source.udom ||
+    []
+  );
+}
+
+/* =========================================================
+   HEALTH CHECK
+   ========================================================= */
+
+app.get(
+  "/api/health",
+  (req, res) => {
+    res.json({
+      status: "ok",
+      application:
+        "CampusConnect Tanzania",
+      country: "Tanzania",
+      currency: "TZS",
+      gemini:
+        ai !== null
+          ? "enabled"
+          : "fallback",
+      model: GEMINI_MODEL,
+      universities:
+        UNIVERSITIES.length,
+      timestamp:
+        new Date().toISOString(),
+    });
+  }
+);
+
+/* =========================================================
+   UNIVERSITIES
+   ========================================================= */
+
+app.get(
+  "/api/universities",
+  (req, res) => {
+    res.json({
+      status: "ok",
+      country: "Tanzania",
+      universities:
+        UNIVERSITIES,
+    });
+  }
+);
+
+/* =========================================================
+   CAMPUSCONNECT AI CHAT
+   ========================================================= */
+
+app.post(
+  "/api/chat",
+  async (req, res) => {
     try {
-      // Format history into generative contents structure
-      const formattedContents = [];
-      if (history && Array.isArray(history)) {
-        for (const turn of history) {
+      const {
+        message,
+        history,
+        university,
+      } = req.body;
+
+      const cleanMessage =
+        cleanString(
+          message,
+          4000
+        );
+
+      if (!cleanMessage) {
+        return sendError(
+          res,
+          400,
+          "Message content is required"
+        );
+      }
+
+      if (
+        history !== undefined &&
+        !Array.isArray(history)
+      ) {
+        return sendError(
+          res,
+          400,
+          "History must be an array"
+        );
+      }
+
+      let selectedUniversity: any =
+        null;
+
+      if (
+        university &&
+        typeof university ===
+          "object"
+      ) {
+        selectedUniversity =
+          university;
+      } else {
+        selectedUniversity =
+          findUniversityById(
+            university
+          );
+      }
+
+      const uniContext =
+        selectedUniversity
+          ? `
+The student belongs to:
+${cleanString(
+  selectedUniversity.name,
+  200
+)}
+(${cleanString(
+  selectedUniversity.acronym,
+  50
+)}).
+
+University city:
+${cleanString(
+  selectedUniversity.city,
+  100
+)}
+
+University region:
+${cleanString(
+  selectedUniversity.region,
+  100
+)}
+
+Tailor your response to this university
+when appropriate.
+`
+          : "";
+
+      const systemInstruction = `
+You are CampusConnect Tanzania AI Companion.
+
+You are an advanced, friendly and practical
+AI assistant designed specifically for
+university students in Tanzania.
+
+You help students with:
+
+- Campus life
+- University information
+- Student communities
+- Hostels
+- Accommodation
+- Marketplace
+- Campus events
+- Study planning
+- Budgeting
+- Student safety
+- Clubs
+- Career opportunities
+- Technology
+- Academic productivity
+
+COUNTRY:
+Tanzania 🇹🇿
+
+CURRENCY:
+Tanzanian Shillings (TZS / Tsh)
+
+${uniContext}
+
+TANZANIAN CONTEXT:
+
+Understand Tanzanian university life.
+
+Use appropriate Tanzanian terms such as:
+
+- chuo
+- mwanafunzi
+- hostel
+- bweni
+- room
+- single room
+- bedsitter
+- semester
+- CAT
+- assignment
+- HESLB
+- daladala
+- bodaboda
+- bajaji
+- campus
+- college
+- course
+- department
+- registration
+
+TRANSPORT:
+
+When discussing transport, use Tanzanian
+transport examples such as:
+
+- daladala
+- bodaboda
+- bajaji
+- BRT where appropriate
+
+Do NOT talk about Kenyan matatus,
+Kenyan universities or KES unless the user
+specifically asks for comparison.
+
+MONEY:
+
+Always use TZS / Tsh for Tanzania.
+
+Do not automatically use KES.
+
+STYLE:
+
+Be friendly.
+
+Be practical.
+
+Use clear Markdown.
+
+Use short paragraphs.
+
+Use bullet points when useful.
+
+You may use Swahili, English,
+or a natural mixture depending on
+the student's language.
+
+Never invent official university policies.
+
+If you are unsure about an official rule,
+tell the student to verify it with
+the relevant university office.
+
+SAFETY:
+
+Never encourage dangerous activity,
+fraud, harassment, scams, cheating,
+or illegal activity.
+
+For accommodation, recommend viewing
+the property before paying and verifying
+the landlord or accommodation provider.
+
+${uniContext}
+`;
+
+      /* =====================================================
+         GEMINI MODE
+         ===================================================== */
+
+      if (ai) {
+        try {
+          const formattedContents =
+            normaliseHistory(
+              history
+            );
+
           formattedContents.push({
-            role: turn.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: turn.content }],
+            role: "user",
+            parts: [
+              {
+                text: cleanMessage,
+              },
+            ],
+          });
+
+          const response =
+            await ai.models.generateContent(
+              {
+                model:
+                  GEMINI_MODEL,
+
+                contents:
+                  formattedContents,
+
+                config: {
+                  systemInstruction,
+
+                  temperature: 0.7,
+                },
+              }
+            );
+
+          const responseText =
+            response.text?.trim();
+
+          if (responseText) {
+            return res.json({
+              status: "ok",
+              response:
+                responseText,
+            });
+          }
+        } catch (error) {
+          console.error(
+            "Gemini chat error:",
+            error
+          );
+
+          console.log(
+            "Using local Tanzania fallback assistant."
+          );
+        }
+      }
+
+      /* =====================================================
+         LOCAL FALLBACK AI
+         ===================================================== */
+
+      const lower =
+        cleanMessage.toLowerCase();
+
+      let reply = `
+Habari, comrade! 🇹🇿👋
+
+Mimi ni CampusConnect Tanzania AI Companion.
+
+Kwa sasa niko kwenye offline mode,
+lakini bado naweza kukusaidia kuhusu:
+
+- Vyuo Tanzania
+- Hostels
+- Marketplace
+- Events
+- Study planning
+- Budgeting
+- Campus life
+- Student safety
+- Clubs na communities
+- Career opportunities
+
+Niambie unahitaji msaada gani.
+`;
+
+      if (
+        lower.includes("hostel") ||
+        lower.includes("bweni") ||
+        lower.includes("room") ||
+        lower.includes("bedsitter") ||
+        lower.includes("accommodation") ||
+        lower.includes("nyumba")
+      ) {
+        reply = `
+## 🏠 Hostel & Accommodation
+
+Ndio comrade!
+
+Unapotafuta hostel Tanzania, angalia:
+
+1. **Umbali kutoka chuoni**
+   - Karibu na campus inaweza kupunguza gharama za usafiri.
+
+2. **Usalama**
+   - Angalia mazingira mchana na jioni.
+   - Ulizia security na locks.
+
+3. **Maji**
+   - Ulizia kama kuna maji ya uhakika.
+
+4. **Umeme**
+   - Ulizia kuhusu LUKU na namna bili inavyolipwa.
+
+5. **Internet**
+   - Kama unasoma Computer Science au course inayohitaji internet, hakikisha network iko vizuri.
+
+6. **Usilipe kabla ya kuona room**
+   - Tembelea hostel kwanza.
+   - Thibitisha mwenye nyumba au agent.
+
+7. **Transport**
+   - Angalia upatikanaji wa daladala, bajaji au bodaboda.
+
+Ukinipa **jina la chuo + budget yako**, naweza kukusaidia kupanga vigezo vya hostel unayotakiwa kutafuta.
+`;
+      }
+
+      else if (
+        lower.includes("budget") ||
+        lower.includes("money") ||
+        lower.includes("pesa") ||
+        lower.includes("gharama") ||
+        lower.includes("bajeti") ||
+        lower.includes("tsh")
+      ) {
+        reply = `
+## 💰 Student Budget Tanzania
+
+Kusurvive chuo kwa budget ndogo inawezekana,
+lakini unatakiwa kupanga matumizi.
+
+### Mfano wa priorities:
+
+1. 🍛 Chakula
+2. 🏠 Hostel / accommodation
+3. 🚌 Transport
+4. 📚 Books & academic materials
+5. 📱 Internet / bundles
+6. 🧼 Personal expenses
+7. 💰 Emergency fund
+
+### Tips:
+
+- Panga matumizi yako kwa wiki.
+- Epuka matumizi madogo yasiyo na mpango.
+- Nunua textbooks used kama zina hali nzuri.
+- Tumia library inapowezekana.
+- Share baadhi ya gharama na roommates.
+- Weka emergency money pembeni.
+
+Tumia **Tsh/TZS**, sio KES, unapopanga budget Tanzania.
+`;
+      }
+
+      else if (
+        lower.includes("study") ||
+        lower.includes("kusoma") ||
+        lower.includes("exam") ||
+        lower.includes("mtihani") ||
+        lower.includes("cat") ||
+        lower.includes("assignment")
+      ) {
+        reply = `
+## 📚 Study Support
+
+Comrade, usisubiri wiki ya mtihani kuanza kusoma.
+
+Jaribu mfumo huu:
+
+### Monday - Friday
+- Review lecture ya siku hiyo.
+- Andika short notes.
+- Tengeneza questions zako.
+
+### Weekend
+- Fanya revision.
+- Solve past questions.
+- Study na group kama inasaidia.
+
+### Before CAT
+- Review topics zote.
+- Focus on areas ambazo hujaelewa.
+- Uliza lecturer au classmates.
+
+### Before Final Exam
+- Past papers
+- Lecture notes
+- Revision questions
+- Group discussion
+
+CampusConnect inaweza kuwa sehemu yako
+ya kupata study communities na academic support.
+`;
+      }
+
+      else if (
+        lower.includes("hello") ||
+        lower.includes("hi") ||
+        lower.includes("hey") ||
+        lower.includes("habari") ||
+        lower.includes("mambo") ||
+        lower.includes("hujambo")
+      ) {
+        reply = `
+Mambo comrade! 🇹🇿🔥
+
+Karibu CampusConnect Tanzania.
+
+Naweza kukusaidia na:
+
+🎓 Vyuo Tanzania
+🏠 Hostels
+📚 Study
+🛒 Student Marketplace
+🎉 Campus Events
+💰 Student Budget
+🚌 Transport
+💼 Career
+👥 Student Communities
+🔐 Campus Safety
+
+Niambie unataka kuanza na nini.
+`;
+      }
+
+      else if (
+        lower.includes("safe") ||
+        lower.includes("security") ||
+        lower.includes("usalama") ||
+        lower.includes("hatari")
+      ) {
+        reply = `
+## 🔐 Student Safety
+
+Usalama ni priority.
+
+### Ukiwa campus:
+
+- Epuka maeneo yasiyo salama usiku.
+- Usitembee peke yako sehemu usiyoijua.
+- Linda simu na laptop yako.
+- Usishare passwords.
+- Usikutane na online seller sehemu ya faragha.
+- Kwa marketplace, tumia sehemu salama na yenye watu.
+- Thibitisha hostel kabla ya kulipa.
+- Hifadhi emergency contacts za chuo.
+
+Kama kuna emergency halisi,
+tafuta msaada wa security ya chuo
+au mamlaka husika mara moja.
+`;
+      }
+
+      else if (
+        lower.includes("udsm")
+      ) {
+        reply = `
+## 🎓 UDSM
+
+University of Dar es Salaam ni moja
+ya vyuo vikuu vikuu Tanzania.
+
+CampusConnect inaweza kukusaidia
+kuhusiana na:
+
+- Student communities
+- Hostels
+- Marketplace
+- Events
+- Study groups
+- Campus life
+
+Ukiwa UDSM, niambie unataka
+**hostel, study, events, marketplace
+au student community**.
+`;
+      }
+
+      else if (
+        lower.includes("udom")
+      ) {
+        reply = `
+## 🎓 UDOM
+
+University of Dodoma ni mojawapo
+ya vyuo vikuu vikubwa Tanzania.
+
+CampusConnect inaweza kukusaidia
+kupanga:
+
+- Accommodation
+- Study groups
+- Marketplace
+- Events
+- Student communities
+- Budget planning
+
+Niambie unahitaji msaada gani kuhusu UDOM.
+`;
+      }
+
+      else if (
+        lower.includes("sua")
+      ) {
+        reply = `
+## 🌾 SUA
+
+Sokoine University of Agriculture
+ipo Morogoro na ina mazingira yenye
+nguvu kwenye agriculture, science,
+technology na related fields.
+
+CampusConnect inaweza kusaidia
+SUA students kwenye:
+
+- Study groups
+- Marketplace
+- Hostels
+- Events
+- Student communities
+- Budgeting
+`;
+      }
+
+      return res.json({
+        status: "ok",
+        response: reply,
+        mode: "fallback",
+      });
+    } catch (error) {
+      console.error(
+        "Chat endpoint error:",
+        error
+      );
+
+      return sendError(
+        res,
+        500,
+        "Failed to process chat request."
+      );
+    }
+  }
+);
+
+/* =========================================================
+   AI MODERATION
+   ========================================================= */
+
+app.post(
+  "/api/moderate",
+  async (req, res) => {
+    try {
+      const {
+        content,
+      } = req.body;
+
+      const cleanContent =
+        cleanString(
+          content,
+          5000
+        );
+
+      if (!cleanContent) {
+        return res.json({
+          status: "APPROVED",
+          reason:
+            "Empty content bypass",
+        });
+      }
+
+      const moderationInstruction = `
+You are CampusConnect Tanzania's
+content moderation AI.
+
+Review student-generated content.
+
+Block content containing:
+
+1. Hate speech
+2. Tribal or ethnic hatred
+3. Serious harassment
+4. Threats
+5. Doxxing
+6. Explicit sexual content
+7. Pornographic content
+8. Scams
+9. Phishing
+10. Fraud
+11. Illegal activity
+12. Academic cheating services
+13. Severe cyberbullying
+14. Dangerous instructions
+
+Return ONLY valid JSON:
+
+{
+  "status": "APPROVED" | "BLOCKED",
+  "reason": "short explanation"
+}
+`;
+
+      if (ai) {
+        try {
+          const response =
+            await ai.models.generateContent(
+              {
+                model:
+                  GEMINI_MODEL,
+
+                contents:
+                  cleanContent,
+
+                config: {
+                  systemInstruction:
+                    moderationInstruction,
+
+                  responseMimeType:
+                    "application/json",
+
+                  temperature: 0.1,
+                },
+              }
+            );
+
+          const parsed =
+            JSON.parse(
+              response.text.trim()
+            );
+
+          if (
+            parsed &&
+            (
+              parsed.status ===
+                "APPROVED" ||
+              parsed.status ===
+                "BLOCKED"
+            )
+          ) {
+            return res.json({
+              status:
+                parsed.status,
+
+              reason:
+                typeof parsed.reason ===
+                "string"
+                  ? parsed.reason
+                  : "Moderation completed.",
+            });
+          }
+        } catch (error) {
+          console.error(
+            "Gemini moderation error:",
+            error
+          );
+        }
+      }
+
+      /* =====================================================
+         LOCAL MODERATION FALLBACK
+         ===================================================== */
+
+      const blockedKeywords = [
+        "scam",
+        "phishing",
+        "fake payment",
+        "send password",
+        "send otp",
+        "academic cheating",
+        "exam answers for sale",
+        "tribal war",
+        "ethnic group is superior",
+        "fuck",
+        "bitch",
+      ];
+
+      const lowerContent =
+        cleanContent.toLowerCase();
+
+      for (
+        const keyword of blockedKeywords
+      ) {
+        if (
+          lowerContent.includes(
+            keyword
+          )
+        ) {
+          return res.json({
+            status: "BLOCKED",
+
+            reason:
+              "Content violates CampusConnect community guidelines.",
           });
         }
       }
-      formattedContents.push({
-        role: 'user',
-        parts: [{ text: message }],
-      });
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: formattedContents,
-        config: {
-          systemInstruction,
-          temperature: 0.7,
-        },
-      });
-
-      return res.json({ response: response.text });
-    } catch (error: any) {
-      console.error('Gemini error:', error);
-      return res.status(500).json({ error: 'AI failed to process message. Please try again.', details: error.message });
-    }
-  }
-
-  // Fallback Rule-Based Simulated Intelligent Chatbot
-  let reply = `Habari, comrade! I am currently operating in offline mode as our cloud connection is pending activation. How can I assist you on campus today? I have a wealth of knowledge on hostels, safe areas, transit, and study planning!`;
-
-  const lower = message.toLowerCase();
-  if (lower.includes('hostel') || lower.includes('rent') || lower.includes('housing') || lower.includes('bedsitter')) {
-    reply = `Ah, housing search! That is one of the toughest challenges for a comrade. Here are my elite guidelines:
-1. **Budget First**: Bedsitters around JKUAT (Juja) range from 6,000 to 10,000 KES, while UON (State House Rd/Mamlaka) or Strathmore (Madaraka) tend to go from 10,000 to 18,000 KES.
-2. **Water Availability**: Ensure your landlord has a steady borehole connection. Dry taps in Juja or Kahawa Sukari are common!
-3. **Security Check**: Check if the hostel has biometric locks, CCTV, and a physical security guard. Never pay deposit before physical viewing!
-4. **Distance**: Try to stay within a 1km radius of the campus gates to save on daily matatu or walking fatigue.`;
-  } else if (lower.includes('budget') || lower.includes('money') || lower.includes('cost') || lower.includes('shilling') || lower.includes('kes')) {
-    reply = `Let's talk budgeting, comrade! Surviving on a student budget in Kenya requires tactical discipline:
-1. **Food Prep**: Eating at the campus mess (UON student mess, KU mess) is extremely cheap (approx 50-100 KES per full meal). Avoid cooking individually daily; buy in bulk at local markets (e.g., Githurai for KU, Juja market for JKUAT).
-2. **Transit**: Group your classes together to avoid multiple matatu trips. Walking is your best friend when safe.
-3. **Marketplace**: Buy pre-loved study desks, laptops, and textbooks on the CampusConnect Marketplace to save up to 60%!
-4. **Group Purchases**: Partner with roommates to split costs of cooking gas, water refilling, and WiFi packages.`;
-  } else if (lower.includes('hello') || lower.includes('hi') || lower.includes('mambo') || lower.includes('hey')) {
-    reply = `Mambo, comrade! Welcome to CampusConnect! How is campus treating you today? I can help you with:
-- Finding verified off-campus hostels
-- Saving money on daily utilities & food
-- Connecting to course communities & clubs
-- Finding events and career hackathons on campus`;
-  } else if (lower.includes('safe') || lower.includes('security') || lower.includes('danger') || lower.includes('night')) {
-    reply = `Safety first, comrade! Kenyan campus environments are vibrant but caution is vital:
-1. **Night Walk**: Avoid walking alone in dark alleyways (like Juja's 'Gachororo' at night or near KU's Ruiru bypass). Walk in groups of 3+.
-2. **Tech Safety**: Keep your phone and laptop concealed in your backpack when commuting in busy matatus or crossing highways.
-3. **Emergency Numbers**: Save your campus security hotline and the nearest police post contact.
-4. **Trust Badge**: When meeting buyers/sellers from the CampusConnect Marketplace, always choose open, public campus spots during the day (e.g., student center, library gate).`;
-  }
-
-  res.json({ response: reply });
-});
-
-// 3. AI Moderation Endpoint (checks if a post violates rules)
-app.post('/api/moderate', async (req, res) => {
-  const { content } = req.body;
-
-  if (!content) {
-    return res.json({ status: 'APPROVED', reason: 'Empty content bypass' });
-  }
-
-  const systemInstruction = `You are a strict Campus Safety Moderator AI for the CampusConnect student super app. Your job is to analyze the content of student posts.
-  Identify if the post contains:
-  1. Hate speech, racism, tribalism (especially critical in Kenyan context), or ethnic slur.
-  2. Severe vulgarity, sexual content, or explicit pornography.
-  3. Direct spam, scam (e.g., "Make 5000 KES hourly without doing anything"), phishing, or illegal academic cheating offers.
-  4. Severe harassment, cyberbullying, or doxxing.
-  
-  Return exactly in this JSON format:
-  {
-    "status": "APPROVED" | "BLOCKED",
-    "reason": "Brief, single-sentence human-friendly reason for why it was approved or blocked."
-  }`;
-
-  if (ai) {
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: content,
-        config: {
-          systemInstruction,
-          responseMimeType: 'application/json',
-          temperature: 0.1,
-        },
-      });
-
-      const decision = JSON.parse(response.text.trim());
-      return res.json(decision);
-    } catch (error) {
-      console.error('AI Moderation error:', error);
-      // Fallback below
-    }
-  }
-
-  // Simple local profanity / scam regex check as fallback
-  const blackList = ['scam', 'cheating help', 'unlimited cash', 'fuck', 'bitch', 'ethnic group is superior', 'tribal war'];
-  const contentLower = content.toLowerCase();
-  for (const keyword of blackList) {
-    if (contentLower.includes(keyword)) {
       return res.json({
-        status: 'BLOCKED',
-        reason: `Violates campus guidelines due to inappropriate keyword: "${keyword}".`,
+        status: "APPROVED",
+        reason:
+          "Content passed moderation filters.",
       });
-    }
-  }
-
-  res.json({ status: 'APPROVED', reason: 'Passed basic security filters.' });
-});
-
-// 4. Generate High-Quality Campus Contextual Mock Data (Gemini)
-app.post('/api/mock-generate', async (req, res) => {
-  const { category, universityName, acronym } = req.body;
-
-  if (!category || !acronym) {
-    return res.status(400).json({ error: 'Category and university acronym are required' });
-  }
-
-  const uniKey = acronym.toLowerCase();
-
-  if (ai) {
-    const prompt = `Generate a JSON array containing exactly 3 realistic, highly specific "${category}" items for students at "${universityName}" (${acronym}) in Kenya.
-    The items MUST be highly tailored to the local environment, referencing actual roads, landmarks, pricing (in KES), student challenges, and realistic events around that campus.
-    
-    Category definitions:
-    1. 'posts': return an array of posts. Format:
-       [
-         {
-           "content": "Text content of the post in first-person student style, with relevant local context, matatu routes, gates, or libraries.",
-           "isAnonymous": boolean
-         }
-       ]
-    2. 'hostels': return an array of hostels. Format:
-       [
-         {
-           "name": "Local sounding hostel name",
-           "address": "Local street name or area (e.g. Juja Gate A, Kahawa Sukari, State House Road)",
-           "distance": number (in meters, e.g. 200 to 1200),
-           "bedsitter": number (KES price monthly, e.g. 6000-15000),
-           "single": number (KES price monthly, e.g. 4000-10000),
-           "oneBedroom": number (KES price monthly, e.g. 10000-22000),
-           "description": "Engaging description showcasing student amenities (WiFi, water security, borehole)."
-         }
-       ]
-    3. 'products': return an array of marketplace items. Format:
-       [
-         {
-           "title": "Short title of item",
-           "description": "Student-style description with why they are selling (e.g. finishing semester, moving out).",
-           "category": "Electronics" | "Textbooks & Notes" | "Furniture" | "Clothing & Fashion" | "Sports Equipment" | "Miscellaneous",
-           "price": number (KES),
-           "condition": "NEW" | "LIKE_NEW" | "USED" | "HEAVILY_USED",
-           "campus": "Specific sub-campus or residential area"
-         }
-       ]
-    4. 'events': return an array of student events. Format:
-       [
-         {
-           "title": "Title of the campus event",
-           "description": "Student-friendly details of the event.",
-           "category": "ACADEMIC" | "SOCIAL" | "SPORTS" | "CULTURAL" | "CAREER" | "HOSTEL",
-           "startDateTime": "2026-07-12T14:00:00",
-           "endDateTime": "2026-07-12T18:00:00",
-           "locationName": "Realistic location name near or in campus",
-           "isVirtual": boolean
-         }
-       ]
-    
-    Return ONLY a raw JSON array. Do not wrap in markdown or output text around it.`;
-
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          temperature: 0.8,
-        },
-      });
-
-      const parsed = JSON.parse(response.text.trim());
-      return res.json({ status: 'ok', data: parsed });
     } catch (error) {
-      console.error('Failed to generate mock via Gemini, falling back to cached:', error);
+      console.error(
+        "Moderation endpoint error:",
+        error
+      );
+
+      return sendError(
+        res,
+        500,
+        "Moderation failed."
+      );
     }
   }
+);
 
-  // Fallback to high-fidelity cached dataset
-  let dataset: any[] = [];
-  if (category === 'posts') {
-    const list = (FALLBACK_POSTS[0] as any)[uniKey] || (FALLBACK_POSTS[0] as any)['jkuat'];
-    dataset = list;
-  } else if (category === 'hostels') {
-    const list = (FALLBACK_HOSTELS[0] as any)[uniKey] || (FALLBACK_HOSTELS[0] as any)['jkuat'];
-    dataset = list;
-  } else if (category === 'products') {
-    const list = (FALLBACK_PRODUCTS[0] as any)[uniKey] || (FALLBACK_PRODUCTS[0] as any)['uon'];
-    dataset = list;
-  } else if (category === 'events') {
-    const list = (FALLBACK_EVENTS[0] as any)[uniKey] || (FALLBACK_EVENTS[0] as any)['jkuat'];
-    dataset = list;
+/* =========================================================
+   AI MOCK DATA GENERATOR
+   ========================================================= */
+
+app.post(
+  "/api/mock-generate",
+  async (req, res) => {
+    try {
+      const {
+        category,
+        universityName,
+        acronym,
+      } = req.body;
+
+      const allowedCategories = [
+        "posts",
+        "hostels",
+        "products",
+        "events",
+      ];
+
+      const cleanCategory =
+        cleanString(
+          category,
+          50
+        ).toLowerCase();
+
+      const cleanAcronym =
+        cleanString(
+          acronym,
+          50
+        );
+
+      const cleanUniversityName =
+        cleanString(
+          universityName,
+          200
+        );
+
+      if (
+        !allowedCategories.includes(
+          cleanCategory
+        )
+      ) {
+        return sendError(
+          res,
+          400,
+          "Invalid category. Use posts, hostels, products or events."
+        );
+      }
+
+      if (!cleanAcronym) {
+        return sendError(
+          res,
+          400,
+          "University acronym is required."
+        );
+      }
+
+      /* =====================================================
+         GEMINI GENERATION
+         ===================================================== */
+
+      if (ai) {
+        const prompt = `
+Generate exactly 3 realistic
+CampusConnect Tanzania records.
+
+Country:
+Tanzania
+
+Currency:
+Tanzanian Shillings (TZS / Tsh)
+
+University:
+${cleanUniversityName}
+
+Acronym:
+${cleanAcronym}
+
+Category:
+${cleanCategory}
+
+Important:
+
+Use realistic Tanzanian university
+student context.
+
+Do NOT generate Kenyan content.
+
+Do NOT use KES.
+
+Use Tsh/TZS.
+
+Use Tanzanian terms such as:
+- chuo
+- hostel
+- bweni
+- daladala
+- bodaboda
+- bajaji
+- semester
+- CAT
+- assignment
+
+CATEGORY RULES:
+
+If category = posts:
+
+Return:
+
+[
+  {
+    "content": "realistic Tanzanian student post",
+    "isAnonymous": false,
+    "tags": ["student", "campus"]
   }
+]
 
-  res.json({ status: 'ok', data: dataset });
-});
+If category = hostels:
 
-// VITE MIDDLEWARE OR STATIC SERVERING
+Return:
+
+[
+  {
+    "name": "realistic hostel name",
+    "address": "realistic local area",
+    "distance": 500,
+    "single": 150000,
+    "bedsitter": 250000,
+    "oneBedroom": 400000,
+    "description": "realistic student accommodation description"
+  }
+]
+
+Prices must be in Tanzanian Shillings.
+
+If category = products:
+
+Return:
+
+[
+  {
+    "title": "product title",
+    "description": "student marketplace description",
+    "category": "Electronics",
+    "price": 500000,
+    "condition": "USED",
+    "campus": "${cleanUniversityName}"
+  }
+]
+
+If category = events:
+
+Return:
+
+[
+  {
+    "title": "realistic campus event",
+    "description": "student-friendly event description",
+    "category": "ACADEMIC",
+    "startDateTime": "2026-09-10T09:00:00",
+    "endDateTime": "2026-09-10T16:00:00",
+    "locationName": "realistic campus location",
+    "isVirtual": false
+  }
+]
+
+Allowed event categories:
+
+ACADEMIC
+SOCIAL
+SPORTS
+CULTURAL
+CAREER
+HOSTEL
+
+Return ONLY raw JSON.
+
+No Markdown.
+
+No explanation.
+`;
+
+        try {
+          const response =
+            await ai.models.generateContent(
+              {
+                model:
+                  GEMINI_MODEL,
+
+                contents:
+                  prompt,
+
+                config: {
+                  responseMimeType:
+                    "application/json",
+
+                  temperature: 0.8,
+                },
+              }
+            );
+
+          const data =
+            parseJsonArray(
+              response.text
+            );
+
+          return res.json({
+            status: "ok",
+            data,
+            source: "gemini",
+          });
+        } catch (error) {
+          console.error(
+            "Gemini mock generation failed:",
+            error
+          );
+
+          console.log(
+            "Using Tanzania fallback dataset."
+          );
+        }
+      }
+
+      /* =====================================================
+         FALLBACK DATA
+         ===================================================== */
+
+      const data =
+        getFallbackDataset(
+          cleanCategory,
+          cleanAcronym
+        );
+
+      return res.json({
+        status: "ok",
+        data,
+        source: "fallback",
+      });
+    } catch (error) {
+      console.error(
+        "Mock generation endpoint error:",
+        error
+      );
+
+      return sendError(
+        res,
+        500,
+        "Failed to generate mock data."
+      );
+    }
+  }
+);
+
+/* =========================================================
+   API 404 HANDLER
+   ========================================================= */
+
+app.use(
+  "/api",
+  (req, res) => {
+    return sendError(
+      res,
+      404,
+      `API route not found: ${req.method} ${req.path}`
+    );
+  }
+);
+
+/* =========================================================
+   GLOBAL ERROR HANDLER
+   ========================================================= */
+
+app.use(
+  (
+    error: any,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    console.error(
+      "Unhandled server error:",
+      error
+    );
+
+    if (res.headersSent) {
+      return next(error);
+    }
+
+    return sendError(
+      res,
+      500,
+      "Internal server error."
+    );
+  }
+);
+
+/* =========================================================
+   VITE SERVER
+   ========================================================= */
+
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+  if (
+    process.env.NODE_ENV !==
+    "production"
+  ) {
+    const {
+      createServer:
+        createViteServer,
+    } = await import("vite");
+
+    const vite =
+      await createViteServer({
+        server: {
+          middlewareMode: true,
+        },
+
+        appType: "spa",
+      });
+
+    app.use(
+      vite.middlewares
+    );
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    const distPath =
+      path.join(
+        process.cwd(),
+        "dist"
+      );
+
+    app.use(
+      express.static(
+        distPath
+      )
+    );
+
+    app.get(
+      "*",
+      (req, res) => {
+        res.sendFile(
+          path.join(
+            distPath,
+            "index.html"
+          )
+        );
+      }
+    );
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`CampusConnect Server listening at http://localhost:${PORT}`);
-  });
+  app.listen(
+    PORT,
+    "0.0.0.0",
+    () => {
+      console.log("");
+      console.log(
+        "=============================================="
+      );
+      console.log(
+        "      CAMPUSCONNECT TANZANIA 🇹🇿"
+      );
+      console.log(
+        "=============================================="
+      );
+      console.log(
+        `Server: http://localhost:${PORT}`
+      );
+      console.log(
+        `Environment: ${
+          process.env.NODE_ENV ||
+          "development"
+        }`
+      );
+      console.log(
+        `Gemini: ${
+          ai
+            ? "ENABLED"
+            : "FALLBACK MODE"
+        }`
+      );
+      console.log(
+        `Model: ${GEMINI_MODEL}`
+      );
+      console.log(
+        `Universities: ${UNIVERSITIES.length}`
+      );
+      console.log(
+        "Currency: TZS / Tsh"
+      );
+      console.log(
+        "Country: Tanzania 🇹🇿"
+      );
+      console.log(
+        "=============================================="
+      );
+      console.log("");
+    }
+  );
 }
 
-startServer();
+/* =========================================================
+   START APPLICATION
+   ========================================================= */
+
+startServer().catch(
+  (error) => {
+    console.error(
+      "Failed to start CampusConnect:",
+      error
+    );
+
+    process.exit(1);
+  }
+);
