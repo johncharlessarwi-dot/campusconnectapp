@@ -1,6 +1,8 @@
 {
   "name": "CampusConnect",
-  "description": "The elite Kenyan university super app for social buzz, safety-verified off-campus housing discovery, student marketplace, course groups, and smart AI advisor.",
+  "description": "The elite Tanzanian university super app for social buzz, safety-verified off-campus housing discovery, student marketplace, course groups, and smart AI advisor.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
