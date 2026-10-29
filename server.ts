@@ -1083,22 +1083,19 @@ app.post(
         );
       }
 
-      let selectedUniversity: any =
-        null;
+      // Never trust client-supplied university fields in the system prompt.
+      // Resolve only an ID against the server-owned university catalogue.
+      const universityId =
+        typeof university === "string"
+          ? university
+          : university &&
+              typeof university === "object" &&
+              "id" in university
+            ? (university as { id?: unknown }).id
+            : undefined;
 
-      if (
-        university &&
-        typeof university ===
-          "object"
-      ) {
-        selectedUniversity =
-          university;
-      } else {
-        selectedUniversity =
-          findUniversityById(
-            university
-          );
-      }
+      const selectedUniversity =
+        findUniversityById(universityId);
 
       const uniContext =
         selectedUniversity
