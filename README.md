@@ -277,3 +277,10 @@ The architecture is designed around a multi-university model:
              Events          Events          Events
              Housing         Housing         Housing
              Marketplace     Marketplace     Marketplace
+
+## Project maintainer
+
+CampusConnect is designed and developed by [John Charles Sarwi](https://john-charles-sarwi-portfolio.vercel.app/), a Computer Science undergraduate and software developer in Tanzania.
+
+- **Developer portfolio:** https://john-charles-sarwi-portfolio.vercel.app/
+- **GitHub:** https://github.com/johncharlessarwi-dot
