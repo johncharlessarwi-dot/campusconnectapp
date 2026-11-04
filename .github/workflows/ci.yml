@@ -26,6 +26,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
+      - name: Run campus privacy regression tests
+        run: npm test
       - name: Type-check application
         run: npm run lint
       - name: Build client and server
