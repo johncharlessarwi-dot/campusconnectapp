@@ -994,12 +994,8 @@ function getFallbackDataset(
     return [];
   }
 
-  return (
-    source[universityKey] ||
-    source.udsm ||
-    source.udom ||
-    []
-  );
+  // Never display another university\'s accommodation or marketplace items as local.
+  return source[universityKey] || [];
 }
 
 /* =========================================================
