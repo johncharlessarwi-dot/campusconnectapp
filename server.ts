@@ -1820,6 +1820,12 @@ app.post(
         );
       }
 
+      const selectedUniversity = findUniversityById(cleanAcronym.toLowerCase());
+
+      if (!selectedUniversity) {
+        return sendError(res, 400, "Unknown university acronym.");
+      }
+
       /* =====================================================
          GEMINI GENERATION
          ===================================================== */
