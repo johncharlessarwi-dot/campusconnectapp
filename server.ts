@@ -22,6 +22,7 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { selectCampusDataset } from "./src/utils/campusDataset.js";
+import { validateMockRecords } from "./src/utils/mockRecords.js";
 import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
@@ -909,13 +910,7 @@ function parseJsonArray(
   const parsed =
     JSON.parse(cleaned);
 
-  if (!Array.isArray(parsed)) {
-    throw new Error(
-      "AI response was not an array"
-    );
-  }
-
-  return parsed;
+  return validateMockRecords(parsed);
 }
 
 function normaliseHistory(
