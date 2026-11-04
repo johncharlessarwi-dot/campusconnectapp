@@ -996,7 +996,7 @@ function getFallbackDataset(
   }
 
   // Never display another university\'s accommodation or marketplace items as local.
-  return source[universityKey] || [];
+  return selectCampusDataset(source, universityKey);
 }
 
 /* =========================================================
