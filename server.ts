@@ -1974,6 +1974,7 @@ No explanation.
             status: "ok",
             data,
             source: "gemini",
+            synthetic: true,
           });
         } catch (error) {
           console.error(
@@ -2001,6 +2002,7 @@ No explanation.
         status: "ok",
         data,
         source: "fallback",
+        synthetic: true,
       });
     } catch (error) {
       console.error(
