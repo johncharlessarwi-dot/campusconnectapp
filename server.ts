@@ -21,6 +21,7 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
+import { selectCampusDataset } from "./src/utils/campusDataset.js";
 import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
