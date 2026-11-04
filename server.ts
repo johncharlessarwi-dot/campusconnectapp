@@ -1771,7 +1771,6 @@ app.post(
     try {
       const {
         category,
-        universityName,
         acronym,
       } = req.body;
 
@@ -1792,12 +1791,6 @@ app.post(
         cleanString(
           acronym,
           50
-        );
-
-      const cleanUniversityName =
-        cleanString(
-          universityName,
-          200
         );
 
       if (
@@ -1825,6 +1818,8 @@ app.post(
       if (!selectedUniversity) {
         return sendError(res, 400, "Unknown university acronym.");
       }
+
+      const cleanUniversityName = selectedUniversity.name;
 
       /* =====================================================
          GEMINI GENERATION
