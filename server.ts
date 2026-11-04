@@ -1739,7 +1739,7 @@ Return ONLY valid JSON:
             status: "BLOCKED",
 
             reason:
-              "Content violates CampusConnect community guidelines.",
+              "Content flagged by automated keyword screening; human review may be required.",
           });
         }
       }
@@ -1747,7 +1747,7 @@ Return ONLY valid JSON:
       return res.json({
         status: "APPROVED",
         reason:
-          "Content passed moderation filters.",
+          "No blocked keyword detected; this is not a comprehensive safety review.",
       });
     } catch (error) {
       console.error(
