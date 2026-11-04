@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/readme/project-motion.svg" width="100%" alt="CAMPUSCONNECT animated overview banner" />
+</div>
+
 # CampusConnect 🇹🇿🎓
 
 ### Tanzania's University Super App for Student Communities, Housing, Marketplace, Events, Messaging & AI
