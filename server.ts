@@ -23,6 +23,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { selectCampusDataset } from "./src/utils/campusDataset.js";
 import { validateMockRecords } from "./src/utils/mockRecords.js";
+import { isJsonObject } from "./src/utils/jsonBody.js";
 import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
@@ -38,6 +39,13 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(express.json({ limit: "1mb" }));
 
 app.disable("x-powered-by");
+
+app.use("/api", (req, res, next) => {
+  if (["POST", "PUT", "PATCH"].includes(req.method) && !isJsonObject(req.body)) {
+    return res.status(400).json({ error: "A JSON object request body is required." });
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
