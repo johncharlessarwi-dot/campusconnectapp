@@ -7,3 +7,8 @@ test('unknown university does not receive another campus listings', () => {
   assert.deepEqual(selectCampusDataset(data, 'mwecau'), [{title:'Moshi hostel'}]);
   assert.deepEqual(selectCampusDataset(data, 'unknown'), []);
 });
+
+test('campus lookups are case insensitive', () => {
+  const data = { mwecau: [{ title: 'Moshi notice' }] };
+  assert.deepEqual(selectCampusDataset(data, 'MWECAU'), data.mwecau);
+});
