@@ -1616,11 +1616,7 @@ app.post(
         );
 
       if (!cleanContent) {
-        return res.json({
-          status: "APPROVED",
-          reason:
-            "Empty content bypass",
-        });
+        return sendError(res, 400, 'Content is required for moderation.');
       }
 
       const moderationInstruction = `
