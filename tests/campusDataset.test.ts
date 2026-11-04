@@ -12,3 +12,8 @@ test('campus lookups are case insensitive', () => {
   const data = { mwecau: [{ title: 'Moshi notice' }] };
   assert.deepEqual(selectCampusDataset(data, 'MWECAU'), data.mwecau);
 });
+
+test('prototype properties cannot be treated as campus records', () => {
+  const data = Object.create({ inherited: [{ title: 'untrusted' }] }) as Record<string, {title:string}[]>;
+  assert.deepEqual(selectCampusDataset(data, 'inherited'), []);
+});
