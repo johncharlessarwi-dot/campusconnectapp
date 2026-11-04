@@ -17,3 +17,9 @@ test('prototype properties cannot be treated as campus records', () => {
   const data = Object.create({ inherited: [{ title: 'untrusted' }] }) as Record<string, {title:string}[]>;
   assert.deepEqual(selectCampusDataset(data, 'inherited'), []);
 });
+
+test('missing campus datasets safely return no listings', () => {
+  assert.deepEqual(selectCampusDataset(undefined, 'mwecau'), []);
+  assert.deepEqual(selectCampusDataset({}, 'mwecau'), []);
+  assert.deepEqual(selectCampusDataset({ mwecau: [] }, ''), []);
+});
