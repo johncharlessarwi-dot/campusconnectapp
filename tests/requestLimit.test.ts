@@ -10,3 +10,11 @@ test('throttles each client after limit and resets in next window', () => {
   assert.equal(allow('student-b', 2), true);
   assert.equal(allow('student-a', 1000), true);
 });
+
+test('caps the number of tracked clients under high-cardinality traffic', () => {
+  const allow = createRequestLimiter(1, 1000, 2);
+  assert.equal(allow('a', 0), true);
+  assert.equal(allow('b', 0), true);
+  assert.equal(allow('c', 1), false);
+  assert.equal(allow('c', 1000), true);
+});
