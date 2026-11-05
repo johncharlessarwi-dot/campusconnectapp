@@ -51,6 +51,7 @@ app.use(["/api/chat", "/api/moderate", "/api/mock-generate"], (req, res, next) =
 });
 
 app.use("/api", (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
   if (["POST", "PUT", "PATCH"].includes(req.method) && !isJsonObject(req.body)) {
     return res.status(400).json({ error: "A JSON object request body is required." });
   }
