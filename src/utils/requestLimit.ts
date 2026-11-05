@@ -4,7 +4,7 @@ export function createRequestLimiter(limit: number, windowMs: number, maxClients
   return (clientId: string, now = Date.now()): boolean => {
     const key = clientId || 'unknown';
     const previous = clients.get(key);
-    if (previous && now - previous.started < windowMs && now >= previous.started) {
+    if (previous && (now < previous.started || now - previous.started < windowMs)) {
       if (previous.count >= limit) return false;
       previous.count++;
       return true;
