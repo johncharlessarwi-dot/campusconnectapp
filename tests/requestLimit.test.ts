@@ -18,3 +18,10 @@ test('caps the number of tracked clients under high-cardinality traffic', () => 
   assert.equal(allow('c', 1), false);
   assert.equal(allow('c', 1000), true);
 });
+
+test('handles clock adjustments without bypassing request budgets', () => {
+  const allow = createRequestLimiter(1, 1000);
+  assert.equal(allow('campus', 5000), true);
+  assert.equal(allow('campus', 4900), true);
+  assert.equal(allow('campus', 4901), false);
+});
