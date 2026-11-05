@@ -2044,7 +2044,7 @@ app.use(
     return sendError(
       res,
       404,
-      `API route not found: ${req.method} ${req.path}`
+      "API route not found."
     );
   }
 );
