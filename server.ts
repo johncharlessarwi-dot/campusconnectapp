@@ -24,6 +24,7 @@ import dotenv from "dotenv";
 import { selectCampusDataset } from "./src/utils/campusDataset.js";
 import { validateMockRecords } from "./src/utils/mockRecords.js";
 import { isJsonObject } from "./src/utils/jsonBody.js";
+import { createRequestLimiter } from "./src/utils/requestLimit.js";
 import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
@@ -39,6 +40,15 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(express.json({ limit: "1mb" }));
 
 app.disable("x-powered-by");
+
+const allowAiRequest = createRequestLimiter(20, 60_000);
+app.use(["/api/chat", "/api/moderate", "/api/mock-generate"], (req, res, next) => {
+  if (!allowAiRequest(req.ip || "unknown")) {
+    res.setHeader("Retry-After", "60");
+    return res.status(429).json({ error: "Too many requests. Try again in a minute." });
+  }
+  next();
+});
 
 app.use("/api", (req, res, next) => {
   if (["POST", "PUT", "PATCH"].includes(req.method) && !isJsonObject(req.body)) {
