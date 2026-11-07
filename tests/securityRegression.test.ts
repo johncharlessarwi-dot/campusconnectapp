@@ -141,3 +141,7 @@ test("return a fresh campus dataset array", () => {
 test("do not cross campus scopes", () => {
   const data = { mwecau: ['Moshi'], udsm: ['Dar'] }; assert.deepEqual(selectCampusDataset(data, 'mwecau'), ['Moshi']);
 });
+
+test("reject prototype key as campus identifier", () => {
+  assert.deepEqual(selectCampusDataset({mwecau:['Safe']}, '__proto__'), []);
+});
