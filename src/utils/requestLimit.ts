@@ -5,6 +5,7 @@ export function createRequestLimiter(limit: number, windowMs: number, maxClients
   if (!Number.isSafeInteger(maxClients) || maxClients < 1) throw new RangeError('Maximum clients must be a positive safe integer');
   const clients = new Map<string, { count: number; started: number }>();
   return (clientId: string, now = Date.now()): boolean => {
+    if (!Number.isFinite(now) || !Number.isSafeInteger(now)) return false;
     const key = clientId || 'unknown';
     const previous = clients.get(key);
     if (previous && (now < previous.started || now - previous.started < windowMs)) {
