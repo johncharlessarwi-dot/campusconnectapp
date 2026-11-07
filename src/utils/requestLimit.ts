@@ -2,6 +2,7 @@
 export function createRequestLimiter(limit: number, windowMs: number, maxClients = 10000) {
   if (!Number.isSafeInteger(limit) || limit < 1) throw new RangeError('Request limit must be a positive safe integer');
   if (!Number.isSafeInteger(windowMs) || windowMs < 1) throw new RangeError('Request window must be a positive safe integer');
+  if (!Number.isSafeInteger(maxClients) || maxClients < 1) throw new RangeError('Maximum clients must be a positive safe integer');
   const clients = new Map<string, { count: number; started: number }>();
   return (clientId: string, now = Date.now()): boolean => {
     const key = clientId || 'unknown';
