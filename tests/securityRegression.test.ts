@@ -53,3 +53,7 @@ test("reject fractional client capacity", () => {
 test("reject infinite client capacity", () => {
   assert.throws(() => createRequestLimiter(1, 1000, Infinity), RangeError);
 });
+
+test("reject NaN request clock", () => {
+  const allow = createRequestLimiter(1, 1000); assert.equal(allow('student', NaN), false);
+});
