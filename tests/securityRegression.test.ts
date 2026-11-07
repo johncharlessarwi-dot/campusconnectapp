@@ -29,3 +29,7 @@ test("reject zero time window", () => {
 test("reject negative time window", () => {
   assert.throws(() => createRequestLimiter(1, -1000), RangeError);
 });
+
+test("reject fractional time window", () => {
+  assert.throws(() => createRequestLimiter(1, 1.5), RangeError);
+});
