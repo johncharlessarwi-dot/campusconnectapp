@@ -37,3 +37,7 @@ test("reject fractional time window", () => {
 test("reject NaN time window", () => {
   assert.throws(() => createRequestLimiter(1, NaN), RangeError);
 });
+
+test("reject zero client capacity", () => {
+  assert.throws(() => createRequestLimiter(1, 1000, 0), RangeError);
+});
