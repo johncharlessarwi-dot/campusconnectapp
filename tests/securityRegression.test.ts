@@ -41,3 +41,7 @@ test("reject NaN time window", () => {
 test("reject zero client capacity", () => {
   assert.throws(() => createRequestLimiter(1, 1000, 0), RangeError);
 });
+
+test("reject negative client capacity", () => {
+  assert.throws(() => createRequestLimiter(1, 1000, -1), RangeError);
+});
