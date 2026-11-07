@@ -101,3 +101,7 @@ test("reject Map objects as JSON API commands", () => {
 test("reject Set objects as JSON API commands", () => {
   assert.equal(isJsonObject(new Set()), false);
 });
+
+test("accept own-property JSON commands", () => {
+  assert.equal(isJsonObject({ universityId: 'mwecau' }), true);
+});
