@@ -25,3 +25,7 @@ test("reject infinite rate limit", () => {
 test("reject zero time window", () => {
   assert.throws(() => createRequestLimiter(1, 0), RangeError);
 });
+
+test("reject negative time window", () => {
+  assert.throws(() => createRequestLimiter(1, -1000), RangeError);
+});
