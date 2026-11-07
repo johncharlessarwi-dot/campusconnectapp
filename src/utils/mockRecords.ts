@@ -6,7 +6,7 @@ export function validateMockRecords(value: unknown): Record<string, unknown>[] {
   if (value.length > 3) {
     throw new Error('Generated examples exceed the requested limit');
   }
-  if (!value.every(item => item !== null && typeof item === 'object' && !Array.isArray(item))) {
+  if (!value.every(item => item !== null && typeof item === 'object' && !Array.isArray(item) && Object.getPrototypeOf(item) === Object.prototype)) {
     throw new Error('Generated examples must contain objects only');
   }
   return value as Record<string, unknown>[];
