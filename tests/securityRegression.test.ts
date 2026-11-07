@@ -49,3 +49,7 @@ test("reject negative client capacity", () => {
 test("reject fractional client capacity", () => {
   assert.throws(() => createRequestLimiter(1, 1000, 1.5), RangeError);
 });
+
+test("reject infinite client capacity", () => {
+  assert.throws(() => createRequestLimiter(1, 1000, Infinity), RangeError);
+});
