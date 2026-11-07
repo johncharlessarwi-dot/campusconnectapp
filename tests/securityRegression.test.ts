@@ -109,3 +109,7 @@ test("accept own-property JSON commands", () => {
 test("reject prototype-less command objects", () => {
   assert.equal(isJsonObject(Object.create(null)), false);
 });
+
+test("reject Date objects in AI mock records", () => {
+  assert.throws(() => validateMockRecords([new Date()]), /objects only/);
+});
