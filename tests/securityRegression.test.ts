@@ -89,3 +89,7 @@ test("retain rate limit for unknown clients", () => {
 test("recover rate budget after window expiry", () => {
   const allow = createRequestLimiter(1, 1000); assert.equal(allow('student', 0), true); assert.equal(allow('student', 999), false); assert.equal(allow('student', 1000), true);
 });
+
+test("reject Date objects as JSON API commands", () => {
+  assert.equal(isJsonObject(new Date()), false);
+});
