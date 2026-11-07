@@ -57,3 +57,7 @@ test("reject infinite client capacity", () => {
 test("reject NaN request clock", () => {
   const allow = createRequestLimiter(1, 1000); assert.equal(allow('student', NaN), false);
 });
+
+test("reject infinite request clock", () => {
+  const allow = createRequestLimiter(1, 1000); assert.equal(allow('student', Infinity), false);
+});
