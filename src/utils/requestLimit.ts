@@ -7,6 +7,7 @@ export function createRequestLimiter(limit: number, windowMs: number, maxClients
   return (clientId: string, now = Date.now()): boolean => {
     if (!Number.isFinite(now) || !Number.isSafeInteger(now)) return false;
     if (typeof clientId !== 'string' || clientId.length > 256) return false;
+    if (/[\u0000-\u001f\u007f]/.test(clientId)) return false;
     const key = clientId || 'unknown';
     const previous = clients.get(key);
     if (previous && (now < previous.started || now - previous.started < windowMs)) {
