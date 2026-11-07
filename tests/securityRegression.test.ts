@@ -5,3 +5,7 @@ import { validateMockRecords } from '../src/utils/mockRecords.ts';
 import { isJsonObject } from '../src/utils/jsonBody.ts';
 import { selectCampusDataset } from '../src/utils/campusDataset.ts';
 
+
+test("reject zero rate limit", () => {
+  assert.throws(() => createRequestLimiter(0, 1000), RangeError);
+});
