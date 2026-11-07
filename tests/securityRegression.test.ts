@@ -9,3 +9,7 @@ import { selectCampusDataset } from '../src/utils/campusDataset.ts';
 test("reject zero rate limit", () => {
   assert.throws(() => createRequestLimiter(0, 1000), RangeError);
 });
+
+test("reject negative rate limit", () => {
+  assert.throws(() => createRequestLimiter(-1, 1000), RangeError);
+});
