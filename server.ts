@@ -39,6 +39,11 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: "1mb" }));
 
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  next();
+});
+
 app.disable("x-powered-by");
 
 const allowAiRequest = createRequestLimiter(20, 60_000);
