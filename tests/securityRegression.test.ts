@@ -65,3 +65,7 @@ test("reject infinite request clock", () => {
 test("reject fractional request clock", () => {
   const allow = createRequestLimiter(1, 1000); assert.equal(allow('student', 0.5), false);
 });
+
+test("reject excessive client key", () => {
+  const allow = createRequestLimiter(1, 1000); assert.equal(allow('x'.repeat(257), 0), false);
+});
