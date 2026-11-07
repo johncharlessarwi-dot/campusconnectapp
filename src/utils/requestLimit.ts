@@ -1,5 +1,6 @@
 /** In-process abuse control for AI endpoints; distributed deployments need a shared store. */
 export function createRequestLimiter(limit: number, windowMs: number, maxClients = 10000) {
+  if (!Number.isSafeInteger(limit) || limit < 1) throw new RangeError('Request limit must be a positive safe integer');
   const clients = new Map<string, { count: number; started: number }>();
   return (clientId: string, now = Date.now()): boolean => {
     const key = clientId || 'unknown';
