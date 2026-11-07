@@ -137,3 +137,7 @@ test("accept exactly thirty AI fields", () => {
 test("return a fresh campus dataset array", () => {
   const data = { mwecau: ['library', 'registration'] }; const selected = selectCampusDataset(data, 'MWECAU'); selected.push('untrusted'); assert.deepEqual(data.mwecau, ['library','registration']);
 });
+
+test("do not cross campus scopes", () => {
+  const data = { mwecau: ['Moshi'], udsm: ['Dar'] }; assert.deepEqual(selectCampusDataset(data, 'mwecau'), ['Moshi']);
+});
