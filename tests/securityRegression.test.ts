@@ -33,3 +33,7 @@ test("reject negative time window", () => {
 test("reject fractional time window", () => {
   assert.throws(() => createRequestLimiter(1, 1.5), RangeError);
 });
+
+test("reject NaN time window", () => {
+  assert.throws(() => createRequestLimiter(1, NaN), RangeError);
+});
