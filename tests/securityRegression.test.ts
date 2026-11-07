@@ -85,3 +85,7 @@ test("normalize padded client key", () => {
 test("retain rate limit for unknown clients", () => {
   const allow = createRequestLimiter(1, 1000); assert.equal(allow('', 0), true); assert.equal(allow('  ', 1), false);
 });
+
+test("recover rate budget after window expiry", () => {
+  const allow = createRequestLimiter(1, 1000); assert.equal(allow('student', 0), true); assert.equal(allow('student', 999), false); assert.equal(allow('student', 1000), true);
+});
