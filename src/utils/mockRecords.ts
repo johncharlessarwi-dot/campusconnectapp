@@ -9,5 +9,8 @@ export function validateMockRecords(value: unknown): Record<string, unknown>[] {
   if (!value.every(item => item !== null && typeof item === 'object' && !Array.isArray(item) && Object.getPrototypeOf(item) === Object.prototype)) {
     throw new Error('Generated examples must contain objects only');
   }
+  if (value.some(item => Object.keys(item).some(key => ['__proto__', 'constructor', 'prototype'].includes(key)))) {
+    throw new Error('Generated examples contain forbidden field names');
+  }
   return value as Record<string, unknown>[];
 }
