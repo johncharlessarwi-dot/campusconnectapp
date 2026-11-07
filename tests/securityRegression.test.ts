@@ -77,3 +77,7 @@ test("reject newline client key", () => {
 test("reject carriage return client key", () => {
   const allow = createRequestLimiter(1, 1000); assert.equal(allow('student\rforged', 0), false);
 });
+
+test("normalize padded client key", () => {
+  const allow = createRequestLimiter(1, 1000); assert.equal(allow(' student ', 0), true); assert.equal(allow('student', 1), false);
+});
