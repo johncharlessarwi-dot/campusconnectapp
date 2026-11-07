@@ -12,5 +12,8 @@ export function validateMockRecords(value: unknown): Record<string, unknown>[] {
   if (value.some(item => Object.keys(item).some(key => ['__proto__', 'constructor', 'prototype'].includes(key)))) {
     throw new Error('Generated examples contain forbidden field names');
   }
+  if (value.some(item => Object.keys(item).length > 30)) {
+    throw new Error('Generated examples contain too many fields');
+  }
   return value as Record<string, unknown>[];
 }
