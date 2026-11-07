@@ -129,3 +129,7 @@ test("reject constructor keys in AI records", () => {
 test("reject more than thirty AI fields", () => {
   const record = Object.fromEntries(Array.from({length:31}, (_, i) => ['field'+i, i])); assert.throws(() => validateMockRecords([record]), /too many fields/);
 });
+
+test("accept exactly thirty AI fields", () => {
+  const record = Object.fromEntries(Array.from({length:30}, (_, i) => ['field'+i, i])); assert.equal(validateMockRecords([record]).length, 1);
+});
