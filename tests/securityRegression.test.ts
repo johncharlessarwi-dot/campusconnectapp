@@ -21,3 +21,7 @@ test("reject fractional rate limit", () => {
 test("reject infinite rate limit", () => {
   assert.throws(() => createRequestLimiter(Infinity, 1000), RangeError);
 });
+
+test("reject zero time window", () => {
+  assert.throws(() => createRequestLimiter(1, 0), RangeError);
+});
