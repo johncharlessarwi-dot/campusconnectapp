@@ -61,3 +61,7 @@ test("reject NaN request clock", () => {
 test("reject infinite request clock", () => {
   const allow = createRequestLimiter(1, 1000); assert.equal(allow('student', Infinity), false);
 });
+
+test("reject fractional request clock", () => {
+  const allow = createRequestLimiter(1, 1000); assert.equal(allow('student', 0.5), false);
+});
