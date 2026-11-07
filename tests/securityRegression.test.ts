@@ -113,3 +113,7 @@ test("reject prototype-less command objects", () => {
 test("reject Date objects in AI mock records", () => {
   assert.throws(() => validateMockRecords([new Date()]), /objects only/);
 });
+
+test("reject arrays nested as mock top-level records", () => {
+  assert.throws(() => validateMockRecords([[]]), /objects only/);
+});
