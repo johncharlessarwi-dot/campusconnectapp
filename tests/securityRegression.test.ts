@@ -105,3 +105,7 @@ test("reject Set objects as JSON API commands", () => {
 test("accept own-property JSON commands", () => {
   assert.equal(isJsonObject({ universityId: 'mwecau' }), true);
 });
+
+test("reject prototype-less command objects", () => {
+  assert.equal(isJsonObject(Object.create(null)), false);
+});
