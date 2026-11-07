@@ -125,3 +125,7 @@ test("reject prototype pollution keys in AI records", () => {
 test("reject constructor keys in AI records", () => {
   assert.throws(() => validateMockRecords([{ constructor: 'spoof' }]), /forbidden field names/);
 });
+
+test("reject more than thirty AI fields", () => {
+  const record = Object.fromEntries(Array.from({length:31}, (_, i) => ['field'+i, i])); assert.throws(() => validateMockRecords([record]), /too many fields/);
+});
