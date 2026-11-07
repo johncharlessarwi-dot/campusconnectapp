@@ -117,3 +117,7 @@ test("reject Date objects in AI mock records", () => {
 test("reject arrays nested as mock top-level records", () => {
   assert.throws(() => validateMockRecords([[]]), /objects only/);
 });
+
+test("reject prototype pollution keys in AI records", () => {
+  const item = JSON.parse('{"__proto__":{"admin":true}}'); assert.throws(() => validateMockRecords([item]), /forbidden field names/);
+});
