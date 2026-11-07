@@ -97,3 +97,7 @@ test("reject Date objects as JSON API commands", () => {
 test("reject Map objects as JSON API commands", () => {
   assert.equal(isJsonObject(new Map()), false);
 });
+
+test("reject Set objects as JSON API commands", () => {
+  assert.equal(isJsonObject(new Set()), false);
+});
