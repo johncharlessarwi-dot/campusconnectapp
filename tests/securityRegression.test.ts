@@ -13,3 +13,7 @@ test("reject zero rate limit", () => {
 test("reject negative rate limit", () => {
   assert.throws(() => createRequestLimiter(-1, 1000), RangeError);
 });
+
+test("reject fractional rate limit", () => {
+  assert.throws(() => createRequestLimiter(1.5, 1000), RangeError);
+});
