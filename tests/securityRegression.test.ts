@@ -121,3 +121,7 @@ test("reject arrays nested as mock top-level records", () => {
 test("reject prototype pollution keys in AI records", () => {
   const item = JSON.parse('{"__proto__":{"admin":true}}'); assert.throws(() => validateMockRecords([item]), /forbidden field names/);
 });
+
+test("reject constructor keys in AI records", () => {
+  assert.throws(() => validateMockRecords([{ constructor: 'spoof' }]), /forbidden field names/);
+});
