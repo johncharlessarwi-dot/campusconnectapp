@@ -133,3 +133,7 @@ test("reject more than thirty AI fields", () => {
 test("accept exactly thirty AI fields", () => {
   const record = Object.fromEntries(Array.from({length:30}, (_, i) => ['field'+i, i])); assert.equal(validateMockRecords([record]).length, 1);
 });
+
+test("return a fresh campus dataset array", () => {
+  const data = { mwecau: ['library', 'registration'] }; const selected = selectCampusDataset(data, 'MWECAU'); selected.push('untrusted'); assert.deepEqual(data.mwecau, ['library','registration']);
+});
