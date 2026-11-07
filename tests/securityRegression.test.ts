@@ -93,3 +93,7 @@ test("recover rate budget after window expiry", () => {
 test("reject Date objects as JSON API commands", () => {
   assert.equal(isJsonObject(new Date()), false);
 });
+
+test("reject Map objects as JSON API commands", () => {
+  assert.equal(isJsonObject(new Map()), false);
+});
