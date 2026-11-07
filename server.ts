@@ -49,6 +49,7 @@ app.disable("x-powered-by");
 const allowAiRequest = createRequestLimiter(20, 60_000);
 app.use(["/api/chat", "/api/moderate", "/api/mock-generate"], (req, res, next) => {
   if (!allowAiRequest(req.ip || "unknown")) {
+    res.setHeader("Cache-Control", "no-store");
     res.setHeader("Retry-After", "60");
     return res.status(429).json({ error: "Too many requests. Try again in a minute." });
   }
