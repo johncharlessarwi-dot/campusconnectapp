@@ -153,6 +153,7 @@ function CampusConnectApp() {
             Discover universities and connect with the opportunities, people,
             and services that make student life easier.
           </p>
+          <a style={{ color: "inherit" }} href="#universities">Explore universities ↓</a>
         </section>
 
         <main className="content">
@@ -174,7 +175,7 @@ function CampusConnectApp() {
           <section className="panel">
             <div className="section-heading">
               <div>
-                <h2>Explore universities</h2>
+                <h2 id="universities" tabIndex={-1}>Explore universities</h2>
                 <p className="muted">Find your institution by name, acronym, or city.</p>
               </div>
               <input
